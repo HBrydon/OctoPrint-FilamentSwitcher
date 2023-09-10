@@ -1,0 +1,5 @@
+include LICENSE
+include README.md
+recursive-include octoprint_FilamentSwitcher/templates *
+recursive-include octoprint_FilamentSwitcher/translations *
+recursive-include octoprint_FilamentSwitcher/static *
