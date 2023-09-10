@@ -17,6 +17,9 @@ or manually using this URL:
 ## Configuration
 
 #**TODO:** Describe your plugin's configuration options (if any).
+
+
+# [HAB] From the skeleton setup at https://github.com/OctoPrint/OctoPrint-PluginSkeleton 
 OctoPrint Plugin Skeleton
 =========================
 
@@ -68,7 +71,8 @@ Commit your code, then push it to your plugin's repository (this assumes you alr
 ``you/OctoPrint-MyNewPlugin``), e.g.:
 
     git commit -a -m "Initial commit of MyNewPlugin"
-    git remote set-url origin git@github.com:you/OctoPrint-MyNewPlugin.git
+#    git remote set-url origin git@github.com:you/OctoPrint-MyNewPlugin.git # Nope, should be next line
+    git remote set-url origin https://github.com/HBrydon/OctoPrint-FilamentSwitcher
     git push -u origin master
 
 Congratulations, you are now the proud maintainer of a new OctoPrint plugin! :) Don't forget to add an entry to the
