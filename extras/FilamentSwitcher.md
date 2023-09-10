@@ -1,19 +1,19 @@
 ---
 layout: plugin
 
-id: HBFS3
-title: OctoPrint-Hbfs3
+id: FilamentSwitcher
+title: OctoPrint-FilamentSwitcher
 description: Octoprint interface for Filament Switcher
 authors:
-- You
+- Harvey Brydon
 license: AGPLv3
 
-# TODO
-date: today's date in format YYYY-MM-DD, e.g. 2015-04-21
+#date: today's date in format 2023-09-10, e.g. 2015-04-21
+date: 2023-09-10
 
-homepage: https://github.com/HBrydon/OctoPrint-Hbfs3
-source: https://github.com/HBrydon/OctoPrint-Hbfs3
-archive: https://github.com/HBrydon/OctoPrint-Hbfs3/archive/master.zip
+homepage: https://github.com/HBrydon/OctoPrint-FilamentSwitcher
+source: https://github.com/HBrydon/OctoPrint-FilamentSwitcher
+archive: https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/master.zip
 
 # TODO
 # Set this to true if your plugin uses the dependency_links setup parameter to include
@@ -60,7 +60,7 @@ compatibility:
   # OctoPrint versions being supported.
 
   octoprint:
-  - 1.4.0
+  - 1.8.0
 
   # List of compatible operating systems
   #
@@ -98,4 +98,7 @@ compatibility:
 ---
 
 **TODO**: Longer description of your plugin, configuration examples etc. This part will be visible on the page at
-http://plugins.octoprint.org/plugin/HBFS3/
+http://plugins.octoprint.org/plugin/FilamentSwitcher/
+
+This plugin serves as an interface to FilamentSwitcher hardware. This plugin and hardware do
+an unattended, automatic switching of filament spools when a filament runout event is detected.
