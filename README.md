@@ -1,25 +1,26 @@
-# OctoPrint-Hbfs3
+# OctoPrint-FilamentSwitcher
 Octoprint plugin interface for Filament Switcher
 
 
-#**TODO:** Describe what your plugin does.
+[//]: <> (**TODO:** Describe what your plugin does.)
 
 ## Setup
 
 Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL:
 
-    https://github.com/HBrydon/OctoPrint-Hbfs3/archive/master.zip
+    https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/master.zip
 
-#**TODO:** Describe how to install your plugin, if more needs to be done than just installing it via pip or through
-#the plugin manager.
+[//]: <> (**TODO:** Describe how to install your plugin, if more needs to be done than just installing it)
+
+[//]: <> (via pip or through the plugin manager.)
 
 ## Configuration
 
-#**TODO:** Describe your plugin's configuration options (if any).
+[//]: <> (**TODO:** Describe your plugin's configuration options (if any).)
 
 
-# [HAB] From the skeleton setup at https://github.com/OctoPrint/OctoPrint-PluginSkeleton 
+[//]: <> ( [HAB] From the skeleton setup at https://github.com/OctoPrint/OctoPrint-PluginSkeleton )
 OctoPrint Plugin Skeleton
 =========================
 
@@ -71,7 +72,7 @@ Commit your code, then push it to your plugin's repository (this assumes you alr
 ``you/OctoPrint-MyNewPlugin``), e.g.:
 
     git commit -a -m "Initial commit of MyNewPlugin"
-#    git remote set-url origin git@github.com:you/OctoPrint-MyNewPlugin.git # Nope, should be next line
+    git remote set-url origin git@github.com:HBrydon/OctoPrint-FilamentSwitcher.git // (doesn't work!)
     git remote set-url origin https://github.com/HBrydon/OctoPrint-FilamentSwitcher
     git push -u origin master
 
