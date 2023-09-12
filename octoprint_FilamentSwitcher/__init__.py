@@ -21,14 +21,12 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
 
     def on_after_startup(self):
         self._logger.info("FilamentSwitcher started *******")
-        self._logger.info("More info at %s", % self._settings.get(["url"]))
+        self._logger.info("More info at %s", self._settings.get(["url"]))
 
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
-        return {
-            return dict(url="https://en.wikipedia.org/wiki/Hello_world")
-        }
+        return dict(url="https://en.wikipedia.org/wiki/Hello_world")
 
     def get_template_configs(self):
         return [
@@ -36,7 +34,7 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
             dict(type="settings", custom_bindings=False)
         ]
 
-     def get_assets(self):
+    def get_assets(self):
          return dict(
              js=["js/FilamentSwitcher.js"]
          )
