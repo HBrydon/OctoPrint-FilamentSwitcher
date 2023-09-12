@@ -74,7 +74,7 @@ Commit your code, then push it to your plugin's repository (this assumes you alr
     git commit -a -m "Initial commit of MyNewPlugin"
     git remote set-url origin git@github.com:HBrydon/OctoPrint-FilamentSwitcher.git // (doesn't work!)
     git remote set-url origin https://github.com/HBrydon/OctoPrint-FilamentSwitcher
-    git push -u origin master
+    git push -u origin main
 
 Congratulations, you are now the proud maintainer of a new OctoPrint plugin! :) Don't forget to add an entry to the
 [wiki](https://github.com/foosel/OctoPrint/wiki#plugins) once it's suitable for general consumption, so that others

@@ -1,5 +1,5 @@
 /*
- * View model for OctoPrint-Hbfs3
+ * View model for OctoPrint-FilamentSwitcher
  *
  * Author: HBrydon
  * License: AGPLv3
