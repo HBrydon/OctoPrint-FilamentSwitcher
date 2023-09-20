@@ -30,14 +30,14 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
 
     def get_template_configs(self):
         return [
-            dict(type="navbar", custom_bindings=False),
-            dict(type="settings", custom_bindings=False)
-        ]
+          dict(type="navbar", custom_bindings=False),
+          dict(type="settings", custom_bindings=False)
+          ]
 
     def get_assets(self):
-         return dict(
-             js=["js/FilamentSwitcher.js"]
-         )
+        return dict(
+            js=["js/FilamentSwitcher.js"]
+        )
 
     def get_template_vars(self):
         return dict(url=self._settings.get(["url"]))
