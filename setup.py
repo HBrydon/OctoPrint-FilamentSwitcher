@@ -1,5 +1,8 @@
 # coding=utf-8
 
+import version
+
+
 ########################################################################################################################
 ### Do not forget to adjust the following variables to your own plugin.
 
@@ -11,10 +14,12 @@ plugin_package = "octoprint_filamentswitcher"
 
 # The plugin's human readable name. Can be overwritten within OctoPrint's internal data via __plugin_name__ in the
 # plugin module
-plugin_name = "OctoPrint-FilamentSwitcher"
+#plugin_name = "OctoPrint-FilamentSwitcher"
+plugin_name = "Filament Switcher"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.1.0"
+#plugin_version = "0.1.0"
+plugin_version = version.plugin_version
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
@@ -24,7 +29,8 @@ plugin_description = """Octoprint interface for Filament Switcher"""
 plugin_author = "HBrydon"
 
 # The plugin's author's mail address.
-plugin_author_email = "codeguy@brydon.net"
+#plugin_author_email = "codeguy@brydon.net"
+plugin_author_email = version.EMAIL
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
 plugin_url = "https://github.com/HBrydon/OctoPrint-FilamentSwitcher"
