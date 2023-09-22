@@ -14,15 +14,15 @@ class FilamentSwitcherPlugin(
 ):
 
     ##~~ StartupPlugin mixin
-
     def on_after_startup(self):
         self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers"]))
         self._logger.info("Magic url is %s" % self._settings.get(["url"]))
 
     ##~~ SettingsPlugin mixin
-
     def get_settings_defaults(self):
         return dict(url="https://en.wikipedia.org/wiki/Hello_world",
+                    urlDE="https://de.wikipedia.org/wiki/Hallo-Welt-Programm",
+                    urlES="https://es.wikipedia.org/wiki/Hola_mundo",
                     ver_maj=version.VER_MAJOR,
                     ver_min=version.VER_MINOR,
                     vers=version.VERSION)
@@ -33,14 +33,14 @@ class FilamentSwitcherPlugin(
           dict(type="settings", custom_bindings=False)
           ]
 
-    def get_template_vars(self):
-        return dict(url=self._settings.get(["url"]))
+    #def get_template_vars(self):
+    #    return dict(url=self._settings.get(["url"]))
 
     ##~~ AssetPlugin mixin
-
     def get_assets(self):
         # Define your plugin's asset files to automatically include in the
         # core UI here.
+        self._logger.info("FilamentSwitcher get_assets() hit")
         return {
             "js": ["js/filamentswitcher.js"],
             "css": ["css/filamentswitcher.css"],
@@ -48,7 +48,6 @@ class FilamentSwitcherPlugin(
         }
 
     ##~~ Softwareupdate hook
-
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
         # Plugin here. See https://docs.octoprint.org/en/master/bundledplugins/softwareupdate.html
