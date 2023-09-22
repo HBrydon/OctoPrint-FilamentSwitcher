@@ -41,11 +41,11 @@ class FilamentSwitcherPlugin(
         # Define your plugin's asset files to automatically include in the
         # core UI here.
         self._logger.info("FilamentSwitcher get_assets() hit")
-        return {
-            "js": ["js/filamentswitcher.js"],
-            "css": ["css/filamentswitcher.css"],
-            "less": ["less/filamentswitcher.less"]
-        }
+        return dict(
+            js=["js/filamentswitcher.js"],
+            css=["css/filamentswitcher.css"],
+            less=["less/filamentswitcher.less"]
+        )
 
     ##~~ Softwareupdate hook
     def get_update_information(self):
