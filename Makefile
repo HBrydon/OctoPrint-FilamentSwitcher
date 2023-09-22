@@ -6,8 +6,8 @@ all: check-env version.py octoprint_filamentswitcher/version.py
 
 
 
-DEBFULLNAME    ?=H Brydon
-DEBEMAIL       ?=private
+#DEBFULLNAME    ?=H Brydon
+#DEBEMAIL       ?=private
 VER_MAJOR      = 0
 VER_MINOR      = 1
 VER_REVISION   ?= $(shell date +"%Y%m%d")b$(BUILD_NUMBER)
@@ -38,8 +38,8 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	@echo "plugin_version     =\"$(VERSION)\""       >> $@
 	@echo "__plugin_version__ =\"$(VERSION)\""       >> $@
 	@echo "BUILD_NUMBER       =$(BUILD_NUMBER)"      >> $@
-	@echo "DEBFULLNAME        =\"$(DEBFULLNAME)\""   >> $@
-	@echo "EMAIL              =\"$(EMAIL)\""         >> $@
+	@#echo "DEBFULLNAME        =\"$(DEBFULLNAME)\""   >> $@
+	@#echo "EMAIL              =\"$(EMAIL)\""         >> $@
 	@#cat $(BUILD_INFO_FILE)
 
 
