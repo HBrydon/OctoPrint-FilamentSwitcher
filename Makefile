@@ -65,16 +65,17 @@ octoprint_filamentswitcher/version.py: version.py
 
 # The following check for VIRTUAL_ENV based on info found at
 #  https://stackoverflow.com/questions/4728810/how-to-ensure-makefile-variable-is-set-as-a-prerequisite
-~/workarea/OctoPrint/create_venv: create_venv
-	@echo ... Populating $@ from $<
-	- @chmod +x $<
-	- @cp -v $< $@
-
-check-env: ~/workarea/OctoPrint/create_venv
+check-env:
 ifndef VIRTUAL_ENV
 	@echo "**** Virtual environment does not seem to be created. You need to go to"
 	@echo "**** to ~/workarea/OctoPrint and run create_env"
 endif
+
+#~/workarea/OctoPrint/create_venv: create_venv
+#	@echo ... Populating $@ from $<
+#	- @chmod +x $<
+#	- @cp -v $< $@
+
 
 .PHONY: all deploy check-env
 

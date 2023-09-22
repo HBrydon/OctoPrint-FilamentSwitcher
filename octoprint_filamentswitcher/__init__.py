@@ -17,7 +17,7 @@ class FilamentSwitcherPlugin(
 
     def on_after_startup(self):
         self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers"]))
-        self._logger.info("More info at %s" % self._settings.get(["url"]))
+        self._logger.info("Magic url is %s" % self._settings.get(["url"]))
 
     ##~~ SettingsPlugin mixin
 
@@ -42,9 +42,9 @@ class FilamentSwitcherPlugin(
         # Define your plugin's asset files to automatically include in the
         # core UI here.
         return {
-            "js": ["js/FilamentSwitcher.js"],
-            "css": ["css/FilamentSwitcher.css"],
-            "less": ["less/FilamentSwitcher.less"]
+            "js": ["js/filamentswitcher.js"],
+            "css": ["css/filamentswitcher.css"],
+            "less": ["less/filamentswitcher.less"]
         }
 
     ##~~ Softwareupdate hook
