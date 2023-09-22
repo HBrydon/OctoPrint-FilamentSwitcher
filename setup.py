@@ -29,7 +29,6 @@ plugin_description = """Octoprint interface for Filament Switcher"""
 plugin_author = "HBrydon"
 
 # The plugin's author's mail address.
-#plugin_author_email = "codeguy@brydon.net"
 plugin_author_email = version.EMAIL
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
