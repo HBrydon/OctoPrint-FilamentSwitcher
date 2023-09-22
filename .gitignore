@@ -11,3 +11,4 @@ dist
 # [HAB zone]
 *.tmp
 version.py
+create_venv
