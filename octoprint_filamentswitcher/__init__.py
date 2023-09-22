@@ -1,13 +1,15 @@
 # coding=utf-8
+
 from __future__ import absolute_import
 
 import version
 
 import octoprint.plugin
 
-class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
-    octoprint.plugin.SettingsPlugin,
+class FilamentSwitcherPlugin(
     octoprint.plugin.AssetPlugin,
+    octoprint.plugin.SettingsPlugin,
+    octoprint.plugin.StartupPlugin,
     octoprint.plugin.TemplatePlugin
 ):
 
@@ -16,7 +18,7 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
     def on_after_startup(self):
         self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers"]))
         #self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers1"]))
-        self._logger.info("More info at %s", self._settings.get(["url"]))
+        self._logger.info("More info at %s" % self._settings.get(["url"]))
 
     ##~~ SettingsPlugin mixin
 
@@ -32,13 +34,6 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
           dict(type="navbar", custom_bindings=False),
           dict(type="settings", custom_bindings=False)
           ]
-
-#    def get_assets(self):
-#        return dict(
-#            js=["js/FilamentSwitcher.js"],
-#            #css=["css/FilamentSwitcher.css"],
-#            less=["less/FilamentSwitcher.less"]
-#        )
 
     def get_template_vars(self):
         return dict(url=self._settings.get(["url"]))
@@ -82,8 +77,9 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-#__plugin_name__ = "FilamentSwitcher"
+__plugin_name__ = "Filament Switcher"
 #__plugin_version__ = "0.1.0"
+__plugin_version__ = version.VERSION
 #__plugin_description__ = "FilamentSwitcher - control interface for Filament Switcher device"
 
 
