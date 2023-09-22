@@ -7,7 +7,7 @@ all: check-env version.py octoprint_filamentswitcher/version.py
 
 
 DEBFULLNAME    ?=H Brydon
-DEBEMAIL       ?=codeguy@brydon.net
+DEBEMAIL       ?=private
 VER_MAJOR      = 0
 VER_MINOR      = 1
 VER_REVISION   ?= $(shell date +"%Y%m%d")b$(BUILD_NUMBER)
