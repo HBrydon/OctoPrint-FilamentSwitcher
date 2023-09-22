@@ -1,13 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
+import version
 
 import octoprint.plugin
 
@@ -20,13 +14,18 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
     ##~~ StartupPlugin mixin
 
     def on_after_startup(self):
-        self._logger.info("FilamentSwitcher started *******")
+        self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers"]))
+        #self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers1"]))
         self._logger.info("More info at %s", self._settings.get(["url"]))
 
     ##~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
-        return dict(url="https://en.wikipedia.org/wiki/Hello_world")
+        return dict(url="https://en.wikipedia.org/wiki/Hello_world",
+                    ver_maj=version.VER_MAJOR,
+                    ver_min=version.VER_MINOR,
+                    vers=version.VERSION,
+                    vers1="0.1.42")
 
     def get_template_configs(self):
         return [
@@ -34,10 +33,12 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
           dict(type="settings", custom_bindings=False)
           ]
 
-    def get_assets(self):
-        return dict(
-            js=["js/FilamentSwitcher.js"]
-        )
+#    def get_assets(self):
+#        return dict(
+#            js=["js/FilamentSwitcher.js"],
+#            #css=["css/FilamentSwitcher.css"],
+#            less=["less/FilamentSwitcher.less"]
+#        )
 
     def get_template_vars(self):
         return dict(url=self._settings.get(["url"]))
@@ -71,7 +72,7 @@ class FilamentSwitcherPlugin(octoprint.plugin.StartupPlugin,
                 "current": self._plugin_version,
 
                 # update method: pip
-                "pip": "https://github.com/HBrydon/OctoPrint-FilmanetSwitcher/archive/{target_version}.zip",
+                "pip": "https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/{target_version}.zip",
             }
         }
 

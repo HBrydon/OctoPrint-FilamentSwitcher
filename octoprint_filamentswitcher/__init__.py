@@ -17,7 +17,6 @@ class FilamentSwitcherPlugin(
 
     def on_after_startup(self):
         self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers"]))
-        #self._logger.info("FilamentSwitcher %s started *******", self._settings.get(["vers1"]))
         self._logger.info("More info at %s" % self._settings.get(["url"]))
 
     ##~~ SettingsPlugin mixin
@@ -26,8 +25,7 @@ class FilamentSwitcherPlugin(
         return dict(url="https://en.wikipedia.org/wiki/Hello_world",
                     ver_maj=version.VER_MAJOR,
                     ver_min=version.VER_MINOR,
-                    vers=version.VERSION,
-                    vers1="0.1.42")
+                    vers=version.VERSION)
 
     def get_template_configs(self):
         return [
