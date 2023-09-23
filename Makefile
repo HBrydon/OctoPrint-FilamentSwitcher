@@ -6,15 +6,17 @@ all: check-env version.py octoprint_filamentswitcher/version.py
 
 
 # Create an auto-incrementing build number.
-BUILD_DATE        =$$(date +'%Y%m%d')
+BUILD_YMD         = $(shell date +"%Y%m%d")
+BUILD_DATE        =$$(date +'%Y-%m-%d')
 BUILD_INFO_FILE   =version.py
-BUILD_NUMBER_FILE =buildnum$(BUILD_DATE).tmp
+BUILD_NUMBER_FILE =buildnum$(BUILD_YMD).tmp
 BUILD_NUMBER      =$$(cat $(BUILD_NUMBER_FILE))
 
-YYYYMMDD       = $(shell date +"%Y-%m-%d")
 VER_MAJOR      = 0
 VER_MINOR      = 1
-VER_REVISION   = $(BUILD_DATE)b$(BUILD_NUMBER)
+VER_PATCH      = $(BUILD_YMD)
+VER_REVISION   = $(BUILD_YMD)-b$(BUILD_NUMBER)
+VER_MMP        =$(VER_MAJOR).$(VER_MINOR).$(VER_PATCH)
 VERSION        =$(VER_MAJOR).$(VER_MINOR).$(VER_REVISION)
 FULLNAME       =H Brydon
 EMAIL          ="2030784+HBrydon@users.noreply.github.com"
@@ -31,27 +33,24 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	@echo "# Generated file - do not edit"           >> $@
 	@echo -e "#\n"                                   >> $@
 	@echo "BUILD_DATE         =\"$(BUILD_DATE)\""    >> $@
-	@echo "YYYYMMDD           =\"$(YYYYMMDD)\""      >> $@
+	@echo "BUILD_YMD          =\"$(BUILD_YMD)\""     >> $@
 	@echo "VER_MAJOR          =$(VER_MAJOR)"         >> $@
 	@echo "VER_MINOR          =$(VER_MINOR)"         >> $@
+	@echo "VER_PATCH          =\"$(VER_PATCH)\""     >> $@
 	@echo "VER_REVISION       =\"$(VER_REVISION)\""  >> $@
+	@echo "VER_MMP            =\"$(VER_MMP)\""       >> $@
 	@echo "VERSION            =\"$(VERSION)\""       >> $@
 	@echo "plugin_version     =\"$(VERSION)\""       >> $@
 	@echo "__plugin_version__ =\"$(VERSION)\""       >> $@
-	@#echo "BUILD_NUMBER       =$(BUILD_NUMBER)"      >> $@
 	@echo "FULLNAME           =\"$(FULLNAME)\""      >> $@
 	@echo "EMAIL              =\"$(EMAIL)\""         >> $@
 	@#cat $(BUILD_INFO_FILE)
 
 
-
-#version.py: octoprint_filamentswitcher/__init__.py
 octoprint_filamentswitcher/version.py: version.py
 	@echo ... Creating Build Version file $@
 	@cp -v $< $@
 		
-
-
 
 #deploy: check-env
 #	...
