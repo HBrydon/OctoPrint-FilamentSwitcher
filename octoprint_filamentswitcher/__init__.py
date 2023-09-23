@@ -38,9 +38,6 @@ class FilamentSwitcherPlugin(
 
     ##~~ AssetPlugin mixin
     def get_assets(self):
-        # Define your plugin's asset files to automatically include in the
-        # core UI here.
-        self._logger.info("FilamentSwitcher get_assets() hit")
         return dict(
             js=["js/filamentswitcher.js"],
             css=["css/filamentswitcher.css"],
@@ -49,9 +46,6 @@ class FilamentSwitcherPlugin(
 
     ##~~ Softwareupdate hook
     def get_update_information(self):
-        # Define the configuration for your plugin to use with the Software Update
-        # Plugin here. See https://docs.octoprint.org/en/master/bundledplugins/softwareupdate.html
-        # for details.
         return {
             "FilamentSwitcher": {
                 "displayName": "FilamentSwitcher Plugin",
@@ -71,6 +65,27 @@ class FilamentSwitcherPlugin(
 
 
 
+# Control properties described at
+#  https://docs.octoprint.org/en/master/plugins/controlproperties.html
+#
+#__plugin_name__
+#__plugin_version__
+#__plugin_description__
+#__plugin_author__
+#__plugin_url__
+#__plugin_license__
+#__plugin_privacypolicy__
+#__plugin_pythoncompat__
+#__plugin_implementation__
+#__plugin_hooks__
+#__plugin_check__
+#__plugin_load__
+#__plugin_unload__
+#__plugin_enable__
+#__plugin_disable__
+#__plugin_settings_overlay__
+
+
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
@@ -80,12 +95,11 @@ __plugin_version__ = version.VERSION
 #__plugin_description__ = "FilamentSwitcher - control interface for Filament Switcher device"
 
 
-
 # Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
 # OctoPrint 1.4.0 - 1.7.x run under both Python 3 and the end-of-life Python 2.
 # OctoPrint 1.8.0 onwards only supports Python 3.
-__plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
-#__plugin_pythoncompat__ = ">=3.7,<4"       # (from seed code)
+#__plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
+__plugin_pythoncompat__ = ">=3.7,<4"
 
 
 def __plugin_load__():
