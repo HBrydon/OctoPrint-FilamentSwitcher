@@ -36,6 +36,7 @@ Commit your code, then push it to your plugin's repository, e.g.:
     write write write...
     git commit -a -m "Initial commit of MyNewPlugin"
     git remote set-url origin git@github.com:HBrydon/OctoPrint-FilamentSwitcher.git // (doesn't work!)
+    git remote set-url bk git://backtrack.local/gitrepo/OctoPrint-FilamentSwitcher.git
     git remote set-url origin https://github.com/HBrydon/OctoPrint-FilamentSwitcher
     git push -u origin main
 

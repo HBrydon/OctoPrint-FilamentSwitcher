@@ -25,7 +25,23 @@ class FilamentSwitcherPlugin(
                     urlES="https://es.wikipedia.org/wiki/Hola_mundo",
                     ver_maj=version.VER_MAJOR,
                     ver_min=version.VER_MINOR,
-                    vers=version.VERSION)
+                    vers=version.VERSION,
+                    zDistance=80,
+                    unload_length=500,
+                    unload_speed=1600,
+                    load_length=50,
+                    load_speed=60,
+                    pause_before_park=False,
+                    retract_before_park=False,
+                    home_before_park=False,
+                    y_park=0,
+                    x_park=0,
+                    z_lift_relative=30,
+                    park_speed=5000
+                    )
+
+    #def get_template_vars(self):
+    #    return dict(url=self._settings.get(["url"]))
 
     def get_template_configs(self):
         return [
@@ -33,8 +49,6 @@ class FilamentSwitcherPlugin(
           dict(type="settings", custom_bindings=False)
           ]
 
-    #def get_template_vars(self):
-    #    return dict(url=self._settings.get(["url"]))
 
     ##~~ AssetPlugin mixin
     def get_assets(self):
@@ -43,6 +57,26 @@ class FilamentSwitcherPlugin(
             css=["css/filamentswitcher.css"],
             less=["less/filamentswitcher.less"]
         )
+
+    # Starting code came from "Rewrite M600 plugin"
+    def rewrite_m600(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        if gcode and gcode == "M600":
+            self._plugin_manager.send_plugin_message(self._identifier, dict(type="popup", msg="Please change the filament and resume the print"))
+            comm_instance.setPause(True)
+            cmd = [("M117 Filament Change",),"G91","M83", "G1 Z+"+str(self._settings.get(["zDistance"]))+" E-0.8 F4500", "M82", "G90", "G1 X0 Y0"]
+        return cmd
+
+    # Starting code came from "Rewrite M600 plugin"
+    def after_resume(self, comm_instance, phase, cmd, parameters, tags=None, *args, **kwargs):
+        if cmd and cmd == "resume":
+            if(comm_instance.pause_position.x):
+                cmd = []
+                cmd =["M83","G1 E-0.8 F4500", "G1 E0.8 F4500", "G1 E0.8 F4500", "M82", "G90", "G92 E"+str(comm_instance.pause_position.e), "M83", "G1 X"+str(comm_instance.pause_position.x)+" Y"+str(comm_instance.pause_position.y)+" Z"+str(comm_instance.pause_position.z)+" F4500"]
+                if(comm_instance.pause_position.f):
+                    cmd.append("G1 F" + str(comm_instance.pause_position.f))
+                comm_instance.commands(cmd)
+            comm_instance.setPause(False)
+        return
 
     ##~~ Softwareupdate hook
     def get_update_information(self):
@@ -94,12 +128,8 @@ __plugin_name__ = "Filament Switcher"
 __plugin_version__ = version.VERSION
 #__plugin_description__ = "FilamentSwitcher - control interface for Filament Switcher device"
 
-
-# Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
-# OctoPrint 1.4.0 - 1.7.x run under both Python 3 and the end-of-life Python 2.
-# OctoPrint 1.8.0 onwards only supports Python 3.
-#__plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
-__plugin_pythoncompat__ = ">=3.7,<4"
+__plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
+#__plugin_pythoncompat__ = ">=3.7,<4"  # Needed for async/await
 
 
 def __plugin_load__():
@@ -108,5 +138,8 @@ def __plugin_load__():
 
     global __plugin_hooks__
     __plugin_hooks__ = {
+        # Described at https://docs.octoprint.org/en/master/plugins/hooks.html#octoprint-comm-protocol-gcode-phase
+        "octoprint.comm.protocol.gcode.queuing":        __plugin_implementation__.rewrite_m600,
+        "octoprint.comm.protocol.atcommand.queuing":    __plugin_implementation__.after_resume,
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }
