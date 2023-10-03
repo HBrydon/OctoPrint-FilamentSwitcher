@@ -11,3 +11,4 @@ dist
 # [HAB zone]
 *.tmp
 create_venv
+old/*
