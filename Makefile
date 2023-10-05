@@ -1,7 +1,8 @@
 
 SHELL := /bin/bash
 
-all: check-env version.py octoprint_filamentswitcher/version.py
+#all: check-env octoprint_filamentswitcher/version.py
+all: check-env version.py
 
 
 
@@ -15,7 +16,7 @@ BUILD_NUMBER      =$$(cat $(BUILD_NUMBER_FILE))
 VER_MAJOR      = 0
 VER_MINOR      = 1
 VER_PATCH      = $(BUILD_YMD)
-VER_REVISION   = $(BUILD_YMD)-b$(BUILD_NUMBER)
+VER_REVISION   = $(BUILD_YMD)b$(BUILD_NUMBER)
 VER_MMP        =$(VER_MAJOR).$(VER_MINOR).$(VER_PATCH)
 VERSION        =$(VER_MAJOR).$(VER_MINOR).$(VER_REVISION)
 FULLNAME       =H Brydon
@@ -45,12 +46,13 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	@echo "FULLNAME           =\"$(FULLNAME)\""      >> $@
 	@echo "EMAIL              =\"$(EMAIL)\""         >> $@
 	@#cat $(BUILD_INFO_FILE)
+	@ls -la $@
+	pip install -e .
 
 
 octoprint_filamentswitcher/version.py: version.py
 	@echo ... Creating Build Version file $@
 	@cp -v $< $@
-		
 
 #deploy: check-env
 #	...
@@ -76,5 +78,10 @@ endif
 #	- @cp -v $< $@
 
 
-.PHONY: all deploy check-env
+TARGETS = octoprint_filamentswitcher/version.py version.py
+
+clean:
+	-@rm -v $(TARGETS)
+
+.PHONY: all clean deploy check-env
 
