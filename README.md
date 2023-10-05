@@ -11,6 +11,7 @@ or manually using one of these URLs:
 
     https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/refs/tags/20230922.zip
     https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/master.zip
+    https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/main.zip
 
 
 [//]: <> (**TODO:** Describe how to install your plugin, if more needs to be done than just installing it)
@@ -25,6 +26,8 @@ or manually using one of these URLs:
 [//]: <> ( [HAB] From the skeleton setup at https://github.com/OctoPrint/OctoPrint-PluginSkeleton )
 OctoPrint Filament Switcher Plugin
 ==================================
+
+ (Based on info at https://github.com/OctoPrint/OctoPrint-PluginSkeleton )
 
 Develop away.
 
@@ -43,3 +46,15 @@ Commit your code, then push it to your plugin's repository, e.g.:
 Congratulations, you are now the proud maintainer of a new OctoPrint plugin! :) Don't forget to add an entry to the
 [wiki](https://github.com/foosel/OctoPrint/wiki#plugins) once it's suitable for general consumption, so that others
 may find it!
+
+##The HAB Version
+
+Development:
+
+    cd workarea
+    git clone https://github.com/HBrydon/OctoPrint-FilamentSwitcher.git
+    cd OctoPrint-FilamentSwitcher/
+    (develop away)
+    git commit -m "yaya" -a
+    git push origin main
+

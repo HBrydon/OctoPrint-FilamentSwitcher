@@ -78,7 +78,7 @@ endif
 #	- @cp -v $< $@
 
 
-TARGETS = octoprint_filamentswitcher/version.py version.py
+TARGETS = version.py
 
 clean:
 	-@rm -v $(TARGETS)

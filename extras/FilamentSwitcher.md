@@ -8,12 +8,12 @@ authors:
 - Harvey Brydon
 license: AGPLv3
 
-#date: today's date in format 2023-09-10, e.g. 2015-04-21
 date: 2023-09-10
 
 homepage: https://github.com/HBrydon/OctoPrint-FilamentSwitcher
 source: https://github.com/HBrydon/OctoPrint-FilamentSwitcher
-archive: https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/master.zip
+#archive: https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/master.zip
+archive: https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/main.zip
 
 # TODO
 # Set this to true if your plugin uses the dependency_links setup parameter to include
@@ -60,7 +60,7 @@ compatibility:
   # OctoPrint versions being supported.
 
   octoprint:
-  - 1.8.0
+  - 1.9.0
 
   # List of compatible operating systems
   #
