@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import version
 import serialUSBio
-#import serialLogger
 
 import octoprint.plugin
 import time
@@ -21,7 +20,8 @@ class FilamentSwitcherPlugin(
         self._logger.info("**** FilamentSwitcher %s started", self._settings.get(["vers"]))
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
         self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
-        self._logger.info("** Should have logging to %s" % self._settings.get(["fsLogfile"]))
+        self._logger.info("** Port logging to %s" % self._settings.get(["fsLogfile"]))
+        self.gcodeCounter = 0
 
 
     #def initialize(self):
@@ -81,6 +81,15 @@ class FilamentSwitcherPlugin(
             #less=["less/filamentswitcher.less"]
         )
 
+    def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        if gcode:
+            if gcode == "M109": # Set temperature
+                self.sendUSBmessage("M109 detected")
+            self.gcodeCounter = self.gcodeCounter +1
+            if self.gcodeCounter < 100:
+                self.sendUSBmessage(cmd)
+        return
+
     ## Starting code came from "Rewrite M600 plugin"
     #def rewrite_m600(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
     #    if gcode and gcode == "M600":
@@ -105,7 +114,7 @@ class FilamentSwitcherPlugin(
         self.fsDev = serialUSBio.SerialUSBio(fsPort, fsLogfile)
         self.fsDev.start()
         self.sendUSBmessage("FSHello")
-        time.sleep(0.5)
+        time.sleep(1.5)
         self._logger.info(self.fsDev.read_line_from_queue())
 
     def sendUSBmessage(self, msg):
@@ -172,7 +181,7 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         # Described at https://docs.octoprint.org/en/master/plugins/hooks.html#octoprint-comm-protocol-gcode-phase
-        #"octoprint.comm.protocol.gcode.queuing":        __plugin_implementation__.rewrite_m600,
+        "octoprint.comm.protocol.gcode.queuing":        __plugin_implementation__.monitor_gcode_queue,
         #"octoprint.comm.protocol.atcommand.queuing":    __plugin_implementation__.after_resume,
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }
