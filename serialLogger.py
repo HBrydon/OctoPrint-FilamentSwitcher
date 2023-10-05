@@ -4,21 +4,17 @@
 import logging
 
 class serialLogger:
-    def __init__(self, logfile):
+    def __init__(self, logfile, port="Unknown"):
         self.logfile = logfile
+        #self.port = port
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-
-        # Create a file handler
         handler = logging.FileHandler(self.logfile)
-
-        # Create a formatter and set it for the handler
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
-
-        # Add the handler to the logger
         self.logger.addHandler(handler)
-        self.logger.info(">>> Logging initiated to %s", logfile)
+        self.logger.info(">>> Logging initiated for port %s", port)
+        self.logger.info(" Logfile %s", logfile)
 
     def __del__(self):
         self.logger.info("<<< Closing logfile")
