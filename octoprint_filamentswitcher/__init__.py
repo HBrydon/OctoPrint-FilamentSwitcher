@@ -133,6 +133,24 @@ class FilamentSwitcherPlugin(
                 "repo": "OctoPrint-FilamentSwitcher",
                 "current": self._plugin_version,
 
+                # Based on code found in
+                #  OctoPrint-Smart-Filament-Sensor
+                # stable releases
+                stable_branch=dict(
+                    name="Stable",
+                    branch="main",
+                    comittish=["main"]
+                    ),
+
+                # release candidates
+                prerelease_branches=[
+                    dict(
+                        name="Release Candidate",
+                        branch="PreRelease",
+                        comittish=["PreRelease"],
+                    )
+                ],
+
                 # update method: pip
                 "pip": "https://github.com/HBrydon/OctoPrint-FilamentSwitcher/archive/{target_version}.zip"
             }
