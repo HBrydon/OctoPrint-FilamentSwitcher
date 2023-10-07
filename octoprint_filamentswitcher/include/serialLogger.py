@@ -56,52 +56,6 @@ def main():
     file_logger.log(logging.ERROR, 'An error occurred.')
     logger = None
 
-
-
-
-
-
-
-
-#class serialLogger:
-#    def __init__(self, logfile):
-#        self.logger = logging.getLogger(__name__)
-#        logging.basicConfig(filename=logfile, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y_%H:%M:%S', level=logging.INFO)
-#        logging.debug('*** SerialLogger(%s)', logfile)
-#        logging.info('*** SerialLogger(%s)', logfile)
-#        logging.warning('*** SerialLogger(%s)', logfile)
-#        logging.error('*** SerialLogger(%s)', logfile)
-#        logging.critical('*** SerialLogger(%s)', logfile)
-#        self.logger.info(">>> Logging initiated to %s", logfile)
-#
-#    def __del__(self):
-#        logging.info("<<< Closing logfile")
-#
-#    def log_send_message(self, message, level=logging.INFO):
-#        logging.info('Send: %s', message)
-#
-#    def log_recv_message(self, message, level=logging.INFO):
-#        logging.info('Recv: %s', message)
-#
-#    def log_message(self, message, level=logging.INFO):
-#        logging.info(message)
-#
-#def main():
-#    logfile = "inout.log"
-#    logger = serialLogger(logfile)
-#
-#    # Log some messages
-#    logger.log_message("This is a log message.")
-#    logger.log_message("Another log message.")
-#    logger = None
-
-#if __name__ == "__main__":
-#    file_logger = serialLogger('logfile.log')
-#
-#    file_logger.log(logging.INFO, 'This is an informational message.')
-#    file_logger.log(logging.ERROR, 'An error occurred.')
-
-
 if __name__ == "__main__":
     main()
 

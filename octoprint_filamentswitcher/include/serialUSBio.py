@@ -4,7 +4,7 @@ import threading
 import time
 import serial
 import queue
-import serialLogger
+from octoprint_filamentswitcher.include import serialLogger
 
 class SerialUSBio:
     def __init__(self, port='/dev/ttyUSB0', logfile='inout.log'):

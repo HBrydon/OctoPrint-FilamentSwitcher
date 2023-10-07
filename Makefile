@@ -1,15 +1,17 @@
+#!/usr/bin/make -f
 
 SHELL := /bin/bash
 
-#all: check-env octoprint_filamentswitcher/version.py
-all: check-env version.py
+VERSION_FILE = octoprint_filamentswitcher/include/pluginversion.py
+
+all: check-env $(VERSION_FILE)
 
 
 
 # Create an auto-incrementing build number.
 BUILD_YMD         = $(shell date +"%Y%m%d")
 BUILD_DATE        =$$(date +'%Y-%m-%d')
-BUILD_INFO_FILE   =version.py
+BUILD_INFO_FILE   =$(VERSION_FILE)
 BUILD_NUMBER_FILE =buildnum$(BUILD_YMD).tmp
 BUILD_NUMBER      =$$(cat $(BUILD_NUMBER_FILE))
 
@@ -50,9 +52,9 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	pip install -e .
 
 
-octoprint_filamentswitcher/version.py: version.py
-	@echo ... Creating Build Version file $@
-	@cp -v $< $@
+#octoprint_filamentswitcher/include/version.py: version.py
+#	@echo ... Creating Build Version file $@
+#	@cp -v $< $@
 
 #deploy: check-env
 #	...
@@ -78,10 +80,10 @@ endif
 #	- @cp -v $< $@
 
 
-TARGETS = version.py
+TARGETS = $(VERSION_FILE)
 
 clean:
-	-@rm -v $(TARGETS)
+	- @rm -v $(TARGETS)
 
-.PHONY: all clean deploy check-env
+.PHONY: all clean #  deploy check-env
 

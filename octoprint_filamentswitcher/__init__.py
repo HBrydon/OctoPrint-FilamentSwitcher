@@ -2,11 +2,20 @@
 
 from __future__ import absolute_import
 
-import version
-import serialUSBio
-
 import octoprint.plugin
 import time
+
+from enum import Enum
+
+from octoprint_filamentswitcher.include import pluginversion
+from octoprint_filamentswitcher.include import serialUSBio
+
+
+class PrinterStatus(Enum):
+    UNKNOWN = 0
+    IDLING = 1
+    PRINTING = 2
+
 
 class FilamentSwitcherPlugin(
     octoprint.plugin.AssetPlugin,
@@ -14,6 +23,9 @@ class FilamentSwitcherPlugin(
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.TemplatePlugin
 ):
+
+    def initialize(self):
+        self.printerstatus = PrinterStatus.IDLING
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
@@ -42,13 +54,13 @@ class FilamentSwitcherPlugin(
         return dict(
             fsPort="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0",
             fsBaudRate=115200,
-            fsLogfile="/home/pi/workarea/OctoPrint-FilamentSwitcher/serialUSB.log",
+            fsLogfile="/home/pi/workarea/OctoPrint-FilamentSwitcher/USBsendrecv.log",
             url="https://en.wikipedia.org/wiki/Hello_world",
             urlDE="https://de.wikipedia.org/wiki/Hallo-Welt-Programm",
             urlES="https://es.wikipedia.org/wiki/Hola_mundo",
-            ver_maj=version.VER_MAJOR,
-            ver_min=version.VER_MINOR,
-            vers=version.VERSION,
+            ver_maj=pluginversion.VER_MAJOR,
+            ver_min=pluginversion.VER_MINOR,
+            vers=pluginversion.VERSION,
             zDistance=80,
             unload_length=500,
             unload_speed=1600,
@@ -185,7 +197,7 @@ class FilamentSwitcherPlugin(
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "Filament Switcher"
 #__plugin_version__ = "0.1.0"
-__plugin_version__ = version.VERSION
+__plugin_version__ = pluginversion.VERSION
 #__plugin_description__ = "FilamentSwitcher - control interface for Filament Switcher device"
 
 __plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
