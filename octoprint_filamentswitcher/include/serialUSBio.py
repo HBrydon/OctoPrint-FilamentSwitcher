@@ -1,12 +1,14 @@
 # Thanks to ChatGPT for writing a lot of this!
 
+from enum import Enum
+import logging
+import serial
 import threading
 import time
-import serial
 import queue
+
 from octoprint_filamentswitcher.include import serialLogger
 
-from enum import Enum
 
 #@unique
 class serStatus(Enum):

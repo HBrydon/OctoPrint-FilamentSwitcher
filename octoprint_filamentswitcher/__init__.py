@@ -8,7 +8,7 @@ import time
 from enum import Enum
 
 from octoprint_filamentswitcher.include import pluginversion
-from octoprint_filamentswitcher.include import serialUSBio
+from octoprint_filamentswitcher.include.serialUSBio import serStatus, SerialUSBio
 
 
 class PrinterStatus(Enum):
@@ -125,13 +125,15 @@ class FilamentSwitcherPlugin(
 
     def initUSBinterface(self, fsPort, fsBaudRate, fsLogfile):
         #self.fsDev = serialUSBio.SerialUSBio(fsPort, fsBaudRate, fsLogfile)
-        self.fsDev = serialUSBio.SerialUSBio(fsPort, fsLogfile)
+        self.fsDev = SerialUSBio(fsPort, fsLogfile)
         self.fsDev.open()
-        #if(self.fsDev.getStatus()):
-        self.fsDev.start()
-        self.sendUSBmessage("FSHello")
-        time.sleep(1.5)
-        self._logger.info(self.fsDev.read_line_from_queue())
+        if(self.fsDev.getStatus() == serStatus.OPEN):
+            self.fsDev.start()
+            self.sendUSBmessage("FSHello")
+            time.sleep(1.5)
+            self._logger.info(self.fsDev.read_line_from_queue())
+        else:
+            self._logger.info("Serial connection %s is not open", fsPort)
 
     def sendUSBmessage(self, msg):
         self.fsDev.write_line(msg)

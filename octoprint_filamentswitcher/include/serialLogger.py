@@ -1,5 +1,5 @@
 
-# Thanks again to ChatGPT for writing a substantial part of this
+# Thanks to ChatGPT for writing the early part of this
 
 import logging
 
@@ -7,7 +7,7 @@ class serialLogger:
     def __init__(self, logfile, port="Unknown"):
         self.logfile = logfile
         self.port = port
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("serialUSBlogger")
         self.logger.setLevel(logging.INFO)
         handler = logging.FileHandler(self.logfile)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
