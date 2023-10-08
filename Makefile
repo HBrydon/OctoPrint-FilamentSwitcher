@@ -43,8 +43,6 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	@echo "VER_REVISION       =\"$(VER_REVISION)\""  >> $@
 	@echo "VER_MMP            =\"$(VER_MMP)\""       >> $@
 	@echo "VERSION            =\"$(VERSION)\""       >> $@
-	@echo "plugin_version     =\"$(VERSION)\""       >> $@
-	@echo "__plugin_version__ =\"$(VERSION)\""       >> $@
 	@echo "FULLNAME           =\"$(FULLNAME)\""      >> $@
 	@echo "EMAIL              =\"$(EMAIL)\""         >> $@
 	@#cat $(BUILD_INFO_FILE)
