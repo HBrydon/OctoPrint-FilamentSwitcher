@@ -31,7 +31,8 @@ class FilamentSwitcherPlugin(
     def on_after_startup(self):
         self._logger.info("**** FilamentSwitcher %s started", self._settings.get(["vers"]))
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
-        self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
+        #self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
+        self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
         self._logger.info("** Port logging to %s" % self._settings.get(["fsLogfile"]))
         self.gcodeCounter = 0
 
@@ -122,8 +123,11 @@ class FilamentSwitcherPlugin(
     #        comm_instance.setPause(False)
     #    return
 
-    def initUSBinterface(self, fsPort, fsLogfile):
+    def initUSBinterface(self, fsPort, fsBaudRate, fsLogfile):
+        #self.fsDev = serialUSBio.SerialUSBio(fsPort, fsBaudRate, fsLogfile)
         self.fsDev = serialUSBio.SerialUSBio(fsPort, fsLogfile)
+        self.fsDev.open()
+        #if(self.fsDev.getStatus()):
         self.fsDev.start()
         self.sendUSBmessage("FSHello")
         time.sleep(1.5)
@@ -131,6 +135,10 @@ class FilamentSwitcherPlugin(
 
     def sendUSBmessage(self, msg):
         self.fsDev.write_line(msg)
+
+    def closeUSBinterface(self):
+        self.fsDev.close()
+        self.fsDev = None
 
     ##~~ Softwareupdate hook
     def get_update_information(self):

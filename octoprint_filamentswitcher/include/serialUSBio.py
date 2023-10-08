@@ -6,40 +6,85 @@ import serial
 import queue
 from octoprint_filamentswitcher.include import serialLogger
 
+from enum import Enum
+
+#@unique
+class serStatus(Enum):
+    UNKNOWN =-0
+    CLOSED = 1
+    OPEN = 2
+
+
+
 class SerialUSBio:
+    #def __init__(self, port='/dev/ttyUSB0', baudrate = 115200, logfile='inout.log'): # Error: number of parameters
     def __init__(self, port='/dev/ttyUSB0', logfile='inout.log'):
-        #print('*** SerialUSBio(<', port, '>, <', logfile, '>)')
-        #self.port = port
-        #self.logfile = logfile
-        self.ser = serial.Serial(port, 115200)
+        self.port = port
+        self.baudrate = 115200
+        self.logfile = logfile
+        self.timeout = 0.1
+        #self.ser = serial.Serial(port, 115200)
+        self.commstate = serStatus.CLOSED
         self.data_queue = queue.Queue()
-        self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
-        time.sleep(1)  # Allow serial device to settle
-        self._serialLogger = serialLogger.serialLogger(logfile, port)
+        self.consumer_thread = None
+        #self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
+        self._serialLogger = serialLogger.serialLogger(self.logfile, self.port)
 
     def __del__(self):
         self.stop()
         self.ser = None
         self._serialLogger = None
 
+    def open(self):
+        try:
+            self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+            self.commstate = serStatus.OPEN
+            self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
+            time.sleep(1)  # Allow serial device to settle
+        except serial.serialutil.SerialException as e:
+            self._serialLogger.log(logging.WARNING, f"Failed to open port {self.port}: {e}")
+            self.ser = None
+            #raise
+
+    def close(self):
+        if self.ser and self.ser.isOpen():
+            self.ser.close()
+            self.ser = None
+
+    def isOpen(self):
+        return self.ser and self.ser.isOpen()
+
+    def flushInput(self):
+        if self.ser and self.ser.isOpen():
+            self.ser.flushInput()
+
+    def flushOutput(self):
+        if self.ser and self.ser.isOpen():
+            self.ser.flushOutput()
+
     def start(self):
         self.consumer_thread.start()
 
     # (producer) Write record to the device, append newline "\n"
     def write_line(self, data):
-        self.ser.write(data.encode())
-        self.ser.write(b"\n")
-        self._serialLogger.log_send_message(data)
-        #print(f"Sending: {data}")
+        if self.ser and self.ser.isOpen():
+            self.ser.write(data.encode())
+            self.ser.write(b"\n")
+            self._serialLogger.log_send_message(data)
+        else:
+            self._serialLogger.log(logger.WARNING, "(Failed serial write, port closed)" % data)
 
     # (producer) Write record to the device
     def write(self, data):
-        self.ser.write(data.encode())
-        self._serialLogger.log_send_message(data)
-        #print(f"Sending: {data}")
+        if self.ser and self.ser.isOpen():
+            self.ser.write(data.encode())
+            self._serialLogger.log_send_message(data)
+        else:
+            self._serialLogger.log(logger.WARNING, "(Failed serial write, port closed)" % data)
 
     # (consumer) Read info from the device
     def buffered_read_thread(self):
+        self.ser.flush()
         while True:
             if self.ser.in_waiting > 0:
                 data = self.ser.readline().decode().strip()
@@ -59,9 +104,12 @@ class SerialUSBio:
     def stop(self):
         if self.ser.isOpen():
             self._serialLogger.log_message("Closing Serial USB port")
-            self.ser.close()
+            self.close()
 
+    def getStatus(self):
+        return self.commstate
 
+# Test code
 def main():
     serialMgr = SerialUSBio("/dev/ttyUSB0", "inout.log")
     try:
@@ -88,3 +136,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

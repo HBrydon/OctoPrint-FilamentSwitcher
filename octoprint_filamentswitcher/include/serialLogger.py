@@ -6,15 +6,15 @@ import logging
 class serialLogger:
     def __init__(self, logfile, port="Unknown"):
         self.logfile = logfile
-        #self.port = port
+        self.port = port
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         handler = logging.FileHandler(self.logfile)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.logger.info(">>> Logging initiated for port %s", port)
-        self.logger.info(" Logfile %s", logfile)
+        self.logger.info(">>> Logging initiated for port %s", self.port)
+        self.logger.info(" Logfile is %s", logfile)
 
     def __del__(self):
         self.logger.info("<<< Closing logfile")
