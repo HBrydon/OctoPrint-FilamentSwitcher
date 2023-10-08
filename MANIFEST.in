@@ -1,8 +1,5 @@
 include LICENSE
 include README.md
-include serialLogger.py
-include serialUSBio.py
-include version.py
 recursive-include octoprint_filamentswitcher/include *
 recursive-include octoprint_filamentswitcher/templates *
 recursive-include octoprint_filamentswitcher/translations *
