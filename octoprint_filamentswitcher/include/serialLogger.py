@@ -13,8 +13,7 @@ class serialLogger:
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.logger.info(">>> Logging initiated for port %s", self.port)
-        self.logger.info(" Logfile is %s", logfile)
+        self.logger.info(">>> Logging initiated to file %s", self.logfile)
 
     def __del__(self):
         self.logger.info("<<< Closing logfile")
