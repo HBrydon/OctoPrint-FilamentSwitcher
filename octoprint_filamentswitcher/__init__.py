@@ -97,7 +97,8 @@ class FilamentSwitcherPlugin(
         )
 
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        self.gcodeCounter = getattr(self, gcodeCounter, 0)
+        if self.gcodeCounter is None:
+            self.gcodeCounte = 0
         if gcode:
             if gcode == "M109": # Set temperature
                 self.sendUSBmessage("FSPStat M109 detected")
@@ -140,6 +141,9 @@ class FilamentSwitcherPlugin(
 
     def sendUSBmessage(self, msg):
         self.fsDev.write_line(msg)
+
+    def sendCurrentState(self):
+        self.sendUSBmessage("FSPStat %s", self.printerstatus)
 
     def closeUSBinterface(self):
         self.fsDev.close()
