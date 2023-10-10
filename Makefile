@@ -47,18 +47,12 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	@echo "EMAIL              =\"$(EMAIL)\""         >> $@
 	@#cat $(BUILD_INFO_FILE)
 	@ls -la $@
-	pip install -e .
+	@echo "File $(BUILD_INFO_FILE) built for version $(VERSION)"
 
 
-#octoprint_filamentswitcher/include/version.py: version.py
-#	@echo ... Creating Build Version file $@
-#	@cp -v $< $@
-
-#deploy: check-env
-#	...
-
-#other-thing-that-needs-env: check-env
-#	...
+deploy: check-env
+	- git status
+	- pip install -e .
 
 #define-env:
 #	echo "PWD 2 is ${PWD}" && virtualenv venv && source venv/bin/activate && pip install -e '.[develop,plugins]'
@@ -69,7 +63,7 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 check-env:
 ifndef VIRTUAL_ENV
 	@echo "**** Virtual environment does not seem to be created. You need to go to"
-	@echo "**** to ~/workarea/OctoPrint and run create_env"
+	@echo "**** to ~/workarea/OctoPrint and create the runtime environment."
 endif
 
 #~/workarea/OctoPrint/create_venv: create_venv
@@ -83,5 +77,5 @@ TARGETS = $(VERSION_FILE)
 clean:
 	- @rm -v $(TARGETS)
 
-.PHONY: all clean #  deploy check-env
+.PHONY: all clean check-env deploy
 
