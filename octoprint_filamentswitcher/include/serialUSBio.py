@@ -7,7 +7,7 @@ import threading
 import time
 import queue
 
-from octoprint_filamentswitcher.include import serialLogger
+from octoprint_filamentswitcher.include.serialLogger import serialLogger
 
 
 #@unique
@@ -30,7 +30,7 @@ class SerialUSBio:
         self.data_queue = queue.Queue()
         self.consumer_thread = None
         #self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
-        self._serialLogger = serialLogger.serialLogger(self.logfile, self.port)
+        self._serialLogger = serialLogger(self.logfile, self.port)
 
     def __del__(self):
         self.stop()
@@ -42,6 +42,7 @@ class SerialUSBio:
             self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
             self.commstate = serStatus.OPEN
             self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
+            self._serialLogger.log_message(f"Port opened for read/write: {self.port}")
             time.sleep(1)  # Allow serial device to settle
         except serial.serialutil.SerialException as e:
             self._serialLogger.log(logging.WARNING, f"Failed to open port {self.port}: {e}")
@@ -49,19 +50,21 @@ class SerialUSBio:
             #raise
 
     def close(self):
-        if self.ser and self.ser.isOpen():
+        if self.isOpen():
+            self._serialLogger.log_message("Closing IO port")
             self.ser.close()
             self.ser = None
+            self.commstate = serStatus.CLOSED
 
     def isOpen(self):
         return self.ser and self.ser.isOpen()
 
     def flushInput(self):
-        if self.ser and self.ser.isOpen():
+        if self.isOpen():
             self.ser.flushInput()
 
     def flushOutput(self):
-        if self.ser and self.ser.isOpen():
+        if self.isOpen():
             self.ser.flushOutput()
 
     def start(self):
@@ -86,8 +89,11 @@ class SerialUSBio:
 
     # (consumer) Read info from the device
     def buffered_read_thread(self):
-        self.ser.flush()
+        #self.ser.flush()  # TODO: Do we need this?
         while True:
+            if self.ser == None:
+                self._serialLogger.log_message("Terminating read loop")
+                return
             if self.ser.in_waiting > 0:
                 data = self.ser.readline().decode().strip()
                 self.data_queue.put(data)
@@ -104,9 +110,7 @@ class SerialUSBio:
             return ""
 
     def stop(self):
-        if self.ser.isOpen():
-            self._serialLogger.log_message("Closing Serial USB port")
-            self.close()
+        self.close()
 
     def getStatus(self):
         return self.commstate
