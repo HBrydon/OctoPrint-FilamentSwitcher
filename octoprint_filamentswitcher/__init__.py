@@ -97,11 +97,14 @@ class FilamentSwitcherPlugin(
         )
 
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        if self.gcodeCounter is None:
-            self.gcodeCounte = 0
+        #if self.gcodeCounter is None:
+        if hasattr(self, 'gcodeCounter'):
+            self.gcodeCounter  # Do nothing
+        else:
+            self.gcodeCounter = 0
         if gcode:
             if gcode == "M109": # Set temperature
-                self.sendUSBmessage("FSPStat M109 detected")
+                self.sendUSBmessage("FSPStat M109 detected", cmd)
             gcodeCounter = gcodeCounter + 1
             if gcodeCounter < 100:
                 self.sendUSBmessage(cmd)
