@@ -10,6 +10,8 @@ from enum import Enum
 from octoprint_filamentswitcher.include import pluginversion
 from octoprint_filamentswitcher.include.serialUSBio import serStatus, SerialUSBio
 
+gcodeCounter = 0
+
 
 class PrinterStatus(Enum):
     UNKNOWN = 0
@@ -23,6 +25,8 @@ class FilamentSwitcherPlugin(
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.TemplatePlugin
 ):
+    #def __init__(self):
+    #    self.gcodeCounter = 0
 
     def initialize(self):
         self.printerstatus = PrinterStatus.IDLING
@@ -33,8 +37,6 @@ class FilamentSwitcherPlugin(
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
         #self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
         self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
-        self._logger.info("** Port logging to %s" % self._settings.get(["fsLogfile"]))
-        self.gcodeCounter = 0
 
 
     #def initialize(self):
@@ -59,9 +61,9 @@ class FilamentSwitcherPlugin(
             url="https://en.wikipedia.org/wiki/Hello_world",
             urlDE="https://de.wikipedia.org/wiki/Hallo-Welt-Programm",
             urlES="https://es.wikipedia.org/wiki/Hola_mundo",
-            ver_maj=pluginversion.VER_MAJOR,
-            ver_min=pluginversion.VER_MINOR,
-            vers=pluginversion.VERSION,
+            #ver_maj=pluginversion.VER_MAJOR,
+            #ver_min=pluginversion.VER_MINOR,
+            #vers=pluginversion.VERSION,
             zDistance=80,
             unload_length=500,
             unload_speed=1600,
@@ -98,8 +100,8 @@ class FilamentSwitcherPlugin(
         if gcode:
             if gcode == "M109": # Set temperature
                 self.sendUSBmessage("M109 detected")
-            self.gcodeCounter = self.gcodeCounter +1
-            if self.gcodeCounter < 100:
+            gcodeCounter = gcodeCounter + 1
+            if gcodeCounter < 100:
                 self.sendUSBmessage(cmd)
         return
 
