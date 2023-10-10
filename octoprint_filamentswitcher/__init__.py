@@ -33,7 +33,7 @@ class FilamentSwitcherPlugin(
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
-        self._logger.info("**** FilamentSwitcher %s started", self._settings.get(["vers"]))
+        self._logger.info("**** FilamentSwitcher %s started", pluginversion.VERSION)
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
         #self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
         self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
@@ -97,9 +97,10 @@ class FilamentSwitcherPlugin(
         )
 
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        self.gcodeCounter = getattr(self, gcodeCounter, 0)
         if gcode:
             if gcode == "M109": # Set temperature
-                self.sendUSBmessage("M109 detected")
+                self.sendUSBmessage("FSPStat M109 detected")
             gcodeCounter = gcodeCounter + 1
             if gcodeCounter < 100:
                 self.sendUSBmessage(cmd)
