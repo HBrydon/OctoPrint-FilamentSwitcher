@@ -25,18 +25,25 @@ class FilamentSwitcherPlugin(
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.TemplatePlugin
 ):
-    #def __init__(self):
-    #    self.gcodeCounter = 0
+    def __init__(self):
+        #self._logger.info("**** FilamentSwitcher __init__() called")
+        self.printerstatus = PrinterStatus.UNKNOWN
+        self.gcodeCounter = 0
+
+    def __del__(self):
+        #self._logger.info("**** FilamentSwitcher __del__() called")
+        self.closeUSBinterface()
 
     def initialize(self):
+        self._logger.info("**** FilamentSwitcher initialize() called")
         self.printerstatus = PrinterStatus.IDLING
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
         self._logger.info("**** FilamentSwitcher %s started", pluginversion.VERSION)
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
-        #self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
-        self.initUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
+        #self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
+        self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
 
 
     #def initialize(self):
@@ -97,18 +104,40 @@ class FilamentSwitcherPlugin(
         )
 
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        #if self.gcodeCounter is None:
         if hasattr(self, 'gcodeCounter'):
-            self.gcodeCounter  # Do nothing
+            self.gcodeCounter += 1
         else:
             self.gcodeCounter = 0
         if gcode:
-            if gcode == "M109": # Set temperature
-                self.sendUSBmessage("FSPStat M109 detected", cmd)
-            gcodeCounter = gcodeCounter + 1
-            if gcodeCounter < 100:
-                self.sendUSBmessage(cmd)
-        return
+            if gcode == "M109": # Set hotend temp and continue
+                self.sendUSBmessage("FSPStat M109 detected: ", cmd)
+            elif gcode == "M190": # Set hotend temp and wait
+                self.sendUSBmessage("FSPStat M190 detected: ", cmd)
+        if self.gcodeCounter < 100:
+            self.sendUSBmessage(cmd)
+        # TODO:
+        # Need to check if FS has notified EndOfFilament event
+        # Need to capture:
+        # - hotend temperature
+        # - comm_instance.pause_position.x
+        # - comm_instance.pause_position.y
+        # - comm_instance.pause_position.z
+        # comm_instance.setPause(True)
+        # change machine state, send to FS
+        # Send commands to FS to back up 'x' mm
+        # change machine state, send to FS
+        # Back out filament past extruder
+        # Move extruder to purge location
+        # Wait for FS to feed new filament stream to extruder
+        # Feed new stream to hotend, run purge process
+        # change machine state, send to FS
+        # Move hotend back to saved x, y, z location
+        # change machine state, send to FS
+        # comm_instance.setPause(False)
+        # change machine state, send to FS
+        # Resume printing
+        # change machine state, send to FS (?)
+
 
     ## Starting code came from "Rewrite M600 plugin"
     #def rewrite_m600(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -130,7 +159,7 @@ class FilamentSwitcherPlugin(
     #        comm_instance.setPause(False)
     #    return
 
-    def initUSBinterface(self, fsPort, fsBaudRate, fsLogfile):
+    def openUSBinterface(self, fsPort, fsBaudRate, fsLogfile):
         #self.fsDev = serialUSBio.SerialUSBio(fsPort, fsBaudRate, fsLogfile)
         self.fsDev = SerialUSBio(fsPort, fsLogfile)
         self.fsDev.open()
