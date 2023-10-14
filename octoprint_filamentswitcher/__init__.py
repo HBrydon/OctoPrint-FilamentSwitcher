@@ -109,10 +109,10 @@ class FilamentSwitcherPlugin(
             self.gcodeCounter += 1
         else:
             self.gcodeCounter = 0
+        #if self.fsDev.queue_count() > 0:
         msg = self.readUSBmessage()
         if msg != "":
             self._logger.info("FS Message: %s", msg)
-        if self.fsDev.queue_count() > 0:
         if gcode:
             if gcode == "M109": # Set hotend temp and continue
                 self.sendUSBmessage("FSPStat M109 detected: %s", cmd)
