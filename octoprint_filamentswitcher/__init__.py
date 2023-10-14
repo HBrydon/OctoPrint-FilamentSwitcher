@@ -37,13 +37,14 @@ class FilamentSwitcherPlugin(
     def initialize(self):
         self._logger.info("**** FilamentSwitcher initialize() called")
         self.printerstatus = PrinterStatus.IDLING
+        self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
         self._logger.info("**** FilamentSwitcher %s started", pluginversion.VERSION)
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
-        #self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
-        self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
+        ##self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
+        #self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
 
 
     #def initialize(self):
@@ -108,12 +109,24 @@ class FilamentSwitcherPlugin(
             self.gcodeCounter += 1
         else:
             self.gcodeCounter = 0
+        msg = self.readUSBmessage()
+        if msg != "":
+            self._logger.info("FS Message: %s", msg)
+        if self.fsDev.queue_count() > 0:
         if gcode:
             if gcode == "M109": # Set hotend temp and continue
-                self.sendUSBmessage("FSPStat M109 detected: ", cmd)
+                self.sendUSBmessage("FSPStat M109 detected: %s", cmd)
+                self.gcodeCounter = 0
             elif gcode == "M190": # Set hotend temp and wait
-                self.sendUSBmessage("FSPStat M190 detected: ", cmd)
-        if self.gcodeCounter < 100:
+                self.sendUSBmessage("FSPStat M190 detected: %s", cmd)
+                self.gcodeCounter = 0
+            elif gcode == "M117": # Send message to LCD
+                #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
+                #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
+                self.sendUSBmessage("FPStat %s", cmd)
+            elif gcode.startswith("M"):
+                self.sendUSBmessage("FSPStat Mx %s", cmd)
+        if self.gcodeCounter < 200:
             self.sendUSBmessage(cmd)
         # TODO:
         # Need to check if FS has notified EndOfFilament event
@@ -122,6 +135,10 @@ class FilamentSwitcherPlugin(
         # - comm_instance.pause_position.x
         # - comm_instance.pause_position.y
         # - comm_instance.pause_position.z
+        # Looks like these are documented in
+        #  /home/pi/workarea/OctoPrint/docs/features/gcode_scripts.rst
+        # Looks like these are defined in
+        #  /home/pi/workarea/OctoPrint/src/octoprint/util/comm.py
         # comm_instance.setPause(True)
         # change machine state, send to FS
         # Send commands to FS to back up 'x' mm
@@ -173,6 +190,9 @@ class FilamentSwitcherPlugin(
 
     def sendUSBmessage(self, msg):
         self.fsDev.write_line(msg)
+
+    def readUSBmessage(self):
+        return self.fsDev.read_line_from_queue()
 
     def sendCurrentState(self):
         self.sendUSBmessage("FSPStat %s", self.printerstatus)
