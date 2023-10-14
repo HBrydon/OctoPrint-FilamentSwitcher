@@ -89,7 +89,6 @@ class SerialUSBio:
 
     # (consumer) Read info from the device
     def buffered_read_thread(self):
-        #self.ser.flush()  # TODO: Do we need this?
         while True:
             if self.ser == None:
                 self._serialLogger.log_message("Terminating read loop")
@@ -104,10 +103,12 @@ class SerialUSBio:
         return self.data_queue.qsize()
 
     def read_line_from_queue(self):
-        try:
-            return self.data_queue.get_nowait()
-        except queue.Empty:
-            return ""
+        if self.queue_count() > 0:
+            try:
+                return self.data_queue.get_nowait()
+            except queue.Empty:
+                pass
+        return ""
 
     def stop(self):
         self.close()
@@ -115,31 +116,30 @@ class SerialUSBio:
     def getStatus(self):
         return self.commstate
 
-# Test code
-def main():
-    serialMgr = SerialUSBio("/dev/ttyUSB0", "inout.log")
-    try:
-        serialMgr.start()
-        serialMgr.write_line("FSHello")
-        serialMgr.write_line("FSBlork")
-        serialMgr.write_line("ON")
-        serialMgr.write_line("FSNetInfo")
-        serialMgr.write_line("FSInfo")
-
-        while True:
-            time.sleep(0.5)
-            while serialMgr.queue_count() > 0:
-                # Read data from the queue
-                print(serialMgr.read_line_from_queue())
-            text = input("Enter: ")
-            serialMgr.write_line(text)
-    except EOFError:
-        print("EOF detected")
-        serialMgr.stop()
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt")
-        serialMgr.stop()
-
-if __name__ == "__main__":
-    main()
-
+## Test code [This worked well with original code but not with current code...]
+#def main():
+#    serialMgr = SerialUSBio("/dev/ttyUSB0", "inout.log")
+#    try:
+#        serialMgr.start()
+#        serialMgr.write_line("FSHello")
+#        serialMgr.write_line("FSBlork")
+#        serialMgr.write_line("ON")
+#        serialMgr.write_line("FSNetInfo")
+#        serialMgr.write_line("FSInfo")
+#
+#        while True:
+#            time.sleep(0.5)
+#            while serialMgr.queue_count() > 0:
+#                # Read data from the queue
+#                print(serialMgr.read_line_from_queue())
+#            text = input("Enter: ")
+#            serialMgr.write_line(text)
+#    except EOFError:
+#        print("EOF detected")
+#        serialMgr.stop()
+#    except KeyboardInterrupt:
+#        print("KeyboardInterrupt")
+#        serialMgr.stop()
+#
+#if __name__ == "__main__":
+#    main()
