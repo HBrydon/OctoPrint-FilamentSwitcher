@@ -26,6 +26,7 @@ class SerialUSBio:
         self.logfile = logfile
         self.timeout = 0.1
         #self.ser = serial.Serial(port, 115200)
+        self.ser = None
         self.commstate = serStatus.CLOSED
         self.data_queue = queue.Queue()
         self.consumer_thread = None
@@ -38,16 +39,19 @@ class SerialUSBio:
         self._serialLogger = None
 
     def open(self):
-        try:
-            self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
-            self.commstate = serStatus.OPEN
-            self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
-            self._serialLogger.log_message(f"Port opened for read/write: {self.port}")
-            time.sleep(1)  # Allow serial device to settle
-        except serial.serialutil.SerialException as e:
-            self._serialLogger.log(logging.WARNING, f"Failed to open port {self.port}: {e}")
-            self.ser = None
-            #raise
+        if self.isOpen():
+            self._serialLogger.log(logging.WARNING, "Attempt to open logging after already open!")
+        else:
+            try:
+                self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+                self.commstate = serStatus.OPEN
+                self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
+                self._serialLogger.log_message(f"Port opened for read/write: {self.port}")
+                time.sleep(1)  # Allow serial device to settle
+            except serial.serialutil.SerialException as e:
+                self._serialLogger.log(logging.WARNING, f"Failed to open port {self.port}: {e}")
+                self.ser = None
+                #raise
 
     def close(self):
         if self.isOpen():
@@ -57,7 +61,9 @@ class SerialUSBio:
             self.commstate = serStatus.CLOSED
 
     def isOpen(self):
-        return self.ser and self.ser.isOpen()
+        if self.ser == None:
+            return False
+        return self.ser.isOpen()
 
     def flushInput(self):
         if self.isOpen():
