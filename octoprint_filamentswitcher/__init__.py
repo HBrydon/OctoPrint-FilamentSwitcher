@@ -10,7 +10,21 @@ from enum import Enum
 from octoprint_filamentswitcher.include import pluginversion
 from octoprint_filamentswitcher.include.serialUSBio import serStatus, SerialUSBio
 
-gcodeCounter = 0
+# Some info available at:
+#  https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+#gcodeCounter = 0
 
 
 class PrinterStatus(Enum):
@@ -35,14 +49,14 @@ class FilamentSwitcherPlugin(
         self.closeUSBinterface()
 
     def initialize(self):
-        self._logger.info("**** FilamentSwitcher initialize() called")
+        self._logger.info(f"{bcolors.BOLD}**** FilamentSwitcher initialize() called{bcolors.ENDC}")
         self.printerstatus = PrinterStatus.IDLING
         self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
         #self._logger.info("**** FilamentSwitcher %s started", pluginversion.VERSION)
-        self._logger.info(f"**** FilamentSwitcher {pluginversion.VERSION} started")
+        self._logger.info(f"{bcolors.BOLD}**** FilamentSwitcher {pluginversion.VERSION} started{bcolors.ENDC}")
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
         ##self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
         #self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
@@ -110,21 +124,22 @@ class FilamentSwitcherPlugin(
             self.gcodeCounter = 0
         self.gcodeCounter += 1
         msg = self.readUSBmessage()
-        if msg != "":
+        if msg != "": # TODO: Process any incoming commands
             self._logger.info(f"FS Message: {msg}")
         if gcode:
             if gcode == "M109": # Set hotend temp and continue
-                self.sendUSBmessage(f"FSPStat M109 detected: {cmd}")
+                self.sendUSBmessage(cmd)
                 self.gcodeCounter = 0
             elif gcode == "M190": # Set hotend temp and wait
-                self.sendUSBmessage(f"FSPStat M190 detected: {cmd}")
+                self.sendUSBmessage(cmd)
                 self.gcodeCounter = 0
             elif gcode == "M117": # Send message to LCD
+                # TODO: Capture layer info
                 #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
                 #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
-                self.sendUSBmessage(f"FSPStat {cmd}")
+                self.sendUSBmessage(cmd)
             elif gcode.startswith("M"):
-                self.sendUSBmessage(f"FSPStat Mx {cmd}")
+                self.sendUSBmessage(cmd)
         if self.gcodeCounter < 200:
             self.sendUSBmessage(cmd)
         # TODO:
@@ -193,9 +208,9 @@ class FilamentSwitcherPlugin(
             #self._logger.info(self.fsDev.read_line_from_queue())
             #self._logger.info(self.fsDev.read_line_from_queue())
             #self._logger.info(self.readUSBmessage())
-            self._logger.info(self.readUSBmessage())
+            self._logger.info(f"{bcolors.BOLD}{self.readUSBmessage()}{bcolors.ENDC}")
         else:
-            self._logger.info(f"Serial connection {fsPort} is not open")
+            self._logger.info(f"{bcolors.BOLD}Serial connection {fsPort} is not open!{bcolors.ENDC}")
 
     def sendUSBmessage(self, msg):
         self.fsDev.write_line(msg)
