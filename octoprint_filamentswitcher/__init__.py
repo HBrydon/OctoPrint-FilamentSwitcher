@@ -41,7 +41,8 @@ class FilamentSwitcherPlugin(
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
-        self._logger.info("**** FilamentSwitcher %s started", pluginversion.VERSION)
+        #self._logger.info("**** FilamentSwitcher %s started", pluginversion.VERSION)
+        self._logger.info(f"**** FilamentSwitcher {pluginversion.VERSION} started")
         #self._logger.info("Magic url is %s" % self._settings.get(["url"]))
         ##self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsLogfile"]))
         #self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
@@ -105,27 +106,25 @@ class FilamentSwitcherPlugin(
         )
 
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        if hasattr(self, 'gcodeCounter'):
-            self.gcodeCounter += 1
-        else:
+        if not hasattr(self, 'gcodeCounter'):
             self.gcodeCounter = 0
-        #if self.fsDev.queue_count() > 0:
+        self.gcodeCounter += 1
         msg = self.readUSBmessage()
         if msg != "":
-            self._logger.info("FS Message: %s", msg)
+            self._logger.info(f"FS Message: {msg}")
         if gcode:
             if gcode == "M109": # Set hotend temp and continue
-                self.sendUSBmessage("FSPStat M109 detected: %s", cmd)
+                self.sendUSBmessage(f"FSPStat M109 detected: {cmd}")
                 self.gcodeCounter = 0
             elif gcode == "M190": # Set hotend temp and wait
-                self.sendUSBmessage("FSPStat M190 detected: %s", cmd)
+                self.sendUSBmessage(f"FSPStat M190 detected: {cmd}")
                 self.gcodeCounter = 0
             elif gcode == "M117": # Send message to LCD
                 #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
                 #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
-                self.sendUSBmessage("FPStat %s", cmd)
+                self.sendUSBmessage(f"FSPStat {cmd}")
             elif gcode.startswith("M"):
-                self.sendUSBmessage("FSPStat Mx %s", cmd)
+                self.sendUSBmessage(f"FSPStat Mx {cmd}")
         if self.gcodeCounter < 200:
             self.sendUSBmessage(cmd)
         # TODO:
@@ -178,15 +177,25 @@ class FilamentSwitcherPlugin(
 
     def openUSBinterface(self, fsPort, fsBaudRate, fsLogfile):
         #self.fsDev = serialUSBio.SerialUSBio(fsPort, fsBaudRate, fsLogfile)
-        self.fsDev = SerialUSBio(fsPort, fsLogfile)
-        self.fsDev.open()
+        if not hasattr(self, 'fsDev'):
+            self.fsDev = None
+        if self.fsDev == None:
+            self.fsDev = SerialUSBio(fsPort, fsLogfile)
+        if not self.fsDev.isOpen():
+            self.fsDev.open()
         if(self.fsDev.getStatus() == serStatus.OPEN):
             self.fsDev.start()
             self.sendUSBmessage("FSHello")
-            time.sleep(1.5)
-            self._logger.info(self.fsDev.read_line_from_queue())
+            #self.sendUSBmessage("FSStatus from octoprint")
+            #self.sendCurrentState()
+            time.sleep(1.0)
+            #self.sendUSBmessage("FSEcho Now is the time for all good men to come to the aid of the party!")
+            #self._logger.info(self.fsDev.read_line_from_queue())
+            #self._logger.info(self.fsDev.read_line_from_queue())
+            #self._logger.info(self.readUSBmessage())
+            self._logger.info(self.readUSBmessage())
         else:
-            self._logger.info("Serial connection %s is not open", fsPort)
+            self._logger.info(f"Serial connection {fsPort} is not open")
 
     def sendUSBmessage(self, msg):
         self.fsDev.write_line(msg)
@@ -195,7 +204,7 @@ class FilamentSwitcherPlugin(
         return self.fsDev.read_line_from_queue()
 
     def sendCurrentState(self):
-        self.sendUSBmessage("FSPStat %s", self.printerstatus)
+        self.sendUSBmessage(f"FSPStat {self.printerstatus}")
 
     def closeUSBinterface(self):
         self.fsDev.close()
