@@ -32,6 +32,11 @@ class PrinterStatus(Enum):
     IDLING = 1
     PRINTING = 2
 
+#class FilSwitcherStatus(Enum):
+#    UNKNOWN = 0
+#    IDLING = 1
+#    PRINTING = 2
+
 
 class FilamentSwitcherPlugin(
     octoprint.plugin.AssetPlugin,
@@ -124,13 +129,21 @@ class FilamentSwitcherPlugin(
             self.gcodeCounter = 0
         self.gcodeCounter += 1
         msg = self.readUSBmessage()
-        if msg != "": # TODO: Process any incoming commands
-            self._logger.info(f"FS Message: {msg}")
+        if msg != "":
+            self._logger.info(f"FS: {msg}")
+            if msg == "FRO":
+                self._logger.warn(f"FS FRO Event - DING DING DING")
+                # TODO:
+                # set FS status
+                # set printer to 'pause'
+                # etc. per info below
         if gcode:
-            if gcode == "M109": # Set hotend temp and continue
+            if self.gcodeCounter < 200:
+                self.sendUSBmessage(cmd)
+            elif gcode == "M104": # Set hotend temp (no wait)
                 self.sendUSBmessage(cmd)
                 self.gcodeCounter = 0
-            elif gcode == "M190": # Set hotend temp and wait
+            elif gcode == "M109": # Set hotend temp (wait)
                 self.sendUSBmessage(cmd)
                 self.gcodeCounter = 0
             elif gcode == "M117": # Send message to LCD
@@ -138,10 +151,10 @@ class FilamentSwitcherPlugin(
                 #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
                 #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
                 self.sendUSBmessage(cmd)
-            elif gcode.startswith("M"):
+            #elif gcode.startswith("M"):
+            #    self.sendUSBmessage(cmd)
+            elif gcode != "G0" and gcode != "G1":
                 self.sendUSBmessage(cmd)
-        if self.gcodeCounter < 200:
-            self.sendUSBmessage(cmd)
         # TODO:
         # Need to check if FS has notified EndOfFilament event
         # Need to capture:
@@ -196,10 +209,11 @@ class FilamentSwitcherPlugin(
             self.fsDev = None
         if self.fsDev == None:
             self.fsDev = SerialUSBio(fsPort, fsLogfile)
-        if not self.fsDev.isOpen():
-            self.fsDev.open()
+            self.fsDev.openSerial()
+        #if not self.fsDev.isOpen():
+        #    self.fsDev.openSerial()
         if(self.fsDev.getStatus() == serStatus.OPEN):
-            self.fsDev.start()
+            #self.fsDev.start()
             self.sendUSBmessage("FSHello")
             #self.sendUSBmessage("FSStatus from octoprint")
             #self.sendCurrentState()
