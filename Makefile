@@ -53,6 +53,8 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 deploy: check-env
 	- git status
 	- pip install -e .
+	@ echo Tag command for this build would be:
+	@ echo git tag $(VER_REVISION)
 
 #define-env:
 #	echo "PWD 2 is ${PWD}" && virtualenv venv && source venv/bin/activate && pip install -e '.[develop,plugins]'
