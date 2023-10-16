@@ -38,47 +38,48 @@ class SerialUSBio:
         self.ser = None
         self._serialLogger = None
 
-    def open(self):
-        if self.isOpen():
+    def openSerial(self):
+        if self.isSerialOpen():
             self._serialLogger.log(logging.WARNING, "Attempt to open logging after already open!")
         else:
             try:
                 self.ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
                 self.commstate = serStatus.OPEN
                 self.consumer_thread = threading.Thread(target=self.buffered_read_thread)
+                self.startReadLoop()
                 self._serialLogger.log_message(f"Port opened for read/write: {self.port}")
                 time.sleep(1)  # Allow serial device to settle
             except serial.serialutil.SerialException as e:
                 self._serialLogger.log(logging.WARNING, f"Failed to open port {self.port}: {e}")
                 self.ser = None
-                #raise
 
-    def close(self):
-        if self.isOpen():
-            self._serialLogger.log_message("Closing IO port")
-            self.ser.close()
+    def closeSerial(self):
+        if self.ser != None:
+            if self.isSerialOpen():
+                self._serialLogger.log_message("Closing IO port")
+                self.ser.close()
             self.ser = None
-            self.commstate = serStatus.CLOSED
+        self.commstate = serStatus.CLOSED
 
-    def isOpen(self):
+    def isSerialOpen(self):
         if self.ser == None:
             return False
         return self.ser.isOpen()
 
     def flushInput(self):
-        if self.isOpen():
+        if self.isSerialOpen():
             self.ser.flushInput()
 
     def flushOutput(self):
-        if self.isOpen():
+        if self.isSerialOpen():
             self.ser.flushOutput()
 
-    def start(self):
+    def startReadLoop(self):
         self.consumer_thread.start()
 
     # (producer) Write record to the device, append newline "\n"
     def write_line(self, data):
-        if self.ser and self.ser.isOpen():
+        if self.isSerialOpen():
             self.ser.write(data.encode())
             self.ser.write(b"\n")
             self._serialLogger.log_send_message(data)
@@ -87,7 +88,7 @@ class SerialUSBio:
 
     # (producer) Write record to the device
     def write(self, data):
-        if self.ser and self.ser.isOpen():
+        if self.isSerialOpen():
             self.ser.write(data.encode())
             self._serialLogger.log_send_message(data)
         else:
@@ -99,11 +100,17 @@ class SerialUSBio:
             if self.ser == None:
                 self._serialLogger.log_message("Terminating read loop")
                 return
-            if self.ser.in_waiting > 0:
-                data = self.ser.readline().decode().strip()
-                self.data_queue.put(data)
-                self._serialLogger.log_recv_message(data)
-            time.sleep(0.5)
+            try:
+                if self.ser.in_waiting > 0:
+                    data = self.ser.readline().decode().strip()
+                    self.data_queue.put(data)
+                    self._serialLogger.log_recv_message(data)
+                    time.sleep(0.5)
+            except serial.serialutil.SerialException as e:
+                self._serialLogger.log(logging.WARNING, f"IO exception on port {self.port} (unplugged?): {e}")
+                #self.ser = None
+                self.closeSerial()
+
 
     def queue_count(self):
         return self.data_queue.qsize()
@@ -117,35 +124,9 @@ class SerialUSBio:
         return ""
 
     def stop(self):
-        self.close()
+        self.closeSerial()
 
     def getStatus(self):
         return self.commstate
 
-## Test code [This worked well with original code but not with current code...]
-#def main():
-#    serialMgr = SerialUSBio("/dev/ttyUSB0", "inout.log")
-#    try:
-#        serialMgr.start()
-#        serialMgr.write_line("FSHello")
-#        serialMgr.write_line("FSBlork")
-#        serialMgr.write_line("ON")
-#        serialMgr.write_line("FSNetInfo")
-#        serialMgr.write_line("FSInfo")
-#
-#        while True:
-#            time.sleep(0.5)
-#            while serialMgr.queue_count() > 0:
-#                # Read data from the queue
-#                print(serialMgr.read_line_from_queue())
-#            text = input("Enter: ")
-#            serialMgr.write_line(text)
-#    except EOFError:
-#        print("EOF detected")
-#        serialMgr.stop()
-#    except KeyboardInterrupt:
-#        print("KeyboardInterrupt")
-#        serialMgr.stop()
-#
-#if __name__ == "__main__":
-#    main()
+
