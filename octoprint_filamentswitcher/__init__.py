@@ -129,10 +129,20 @@ class FilamentSwitcherPlugin(
             self.gcodeCounter = 0
         self.gcodeCounter += 1
         msg = self.readUSBmessage()
+        if self.gcodeCounter == 10000:            # *** Test test
+            self.sendUSBmessage("FSEcho FS: FRO") # *** Test test
+        if self.gcodeCounter % 697:               # *** Test test
+            self.sendUSBmessage(f"FSPStat ?banana?")  # TODO: Fix this
         if msg != "":
-            self._logger.info(f"FS: {msg}")
-            if msg == "FRO":
+            self._logger.info(f"Inbound: {msg}")
+            fsCmdLine = msg.split()
+            if len(fsCmdLine) > 1:
+                if fsCmdLine[0] == "FS:":
+                    self._logger.info(f"FS command is {fsCmdLine[1:]}")
+            if msg == "FS: FRO" || msg == "FRO":
                 self._logger.warn(f"FS FRO Event - DING DING DING")
+                #comm_instance.setPause(True)  # Some day but not yet...
+                self.gcodeCounter = 0
                 # TODO:
                 # set FS status
                 # set printer to 'pause'
