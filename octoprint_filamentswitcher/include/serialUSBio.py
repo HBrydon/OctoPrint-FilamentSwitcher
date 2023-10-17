@@ -84,7 +84,7 @@ class SerialUSBio:
             self.ser.write(b"\n")
             self._serialLogger.log_send_message(data)
         else:
-            self._serialLogger.log(logger.WARNING, "(Failed serial write, port closed)" % data)
+            self._serialLogger.log(logging.WARNING, "(Failed serial write, port closed)" % data)
 
     # (producer) Write record to the device
     def write(self, data):
@@ -92,7 +92,7 @@ class SerialUSBio:
             self.ser.write(data.encode())
             self._serialLogger.log_send_message(data)
         else:
-            self._serialLogger.log(logger.WARNING, "(Failed serial write, port closed)" % data)
+            self._serialLogger.log(logging.WARNING, "(Failed serial write, port closed)" % data)
 
     # (consumer) Read info from the device
     def buffered_read_thread(self):
