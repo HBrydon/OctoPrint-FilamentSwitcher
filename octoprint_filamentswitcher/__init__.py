@@ -139,7 +139,7 @@ class FilamentSwitcherPlugin(
             if len(fsCmdLine) > 1:
                 if fsCmdLine[0] == "FS:":
                     self._logger.info(f"FS command is {fsCmdLine[1:]}")
-            if msg == "FS: FRO" || msg == "FRO":
+            if msg == "FS: FRO" or msg == "FRO":
                 self._logger.warn(f"FS FRO Event - DING DING DING")
                 #comm_instance.setPause(True)  # Some day but not yet...
                 self.gcodeCounter = 0
