@@ -50,7 +50,7 @@ $(BUILD_INFO_FILE): octoprint_filamentswitcher/__init__.py
 	@echo "File $(BUILD_INFO_FILE) built for version $(VERSION)"
 
 
-deploy: check-env
+deploy: check-env $(BUILD_INFO_FILE)
 	- git status
 	- pip install -e .
 	@ echo Tag command for this build would be:
