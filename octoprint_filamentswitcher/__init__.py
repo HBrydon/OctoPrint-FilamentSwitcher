@@ -197,7 +197,7 @@ class FilamentSwitcherPlugin(
                     self.sendUSBmessage(cmd)
                 elif self.gcodeCounter < 200:
                     self.sendUSBmessage(cmd)
-                if gcode "G0" or gcode == "G1":
+                if gcode == "G0" or gcode == "G1":
                     #self.process_inbound_commands(comm_instance, cmd, gcode)
                     msg = self.readUSBmessage()
                     if msg != "":
