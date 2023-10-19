@@ -32,10 +32,29 @@ class PrinterStatus(Enum):
     IDLING = 1
     PRINTING = 2
 
-#class FilSwitcherStatus(Enum):
-#    UNKNOWN = 0
-#    IDLING = 1
-#    PRINTING = 2
+class XYZAxisStatus(Enum):
+    UNKNOWN = 0
+    RELATIVE = 1
+    ABSOLUTE = 2
+
+class EAxisStatus(Enum):
+    UNKNOWN = 0
+    RELATIVE = 1
+    ABSOLUTE = 2
+
+class FilSwitcherStatus(Enum):
+    MONITOR = 0
+    LOOKFORG0G1 = 1
+    WAITFORRETRACT = 2
+    PHASE1 = 3
+    PHASE2 = 4
+    PHASE3 = 5
+    PHASE4 = 6
+    PHASE5 = 7
+    PHASE6 = 8
+    PHASE7 = 9
+    PAUSEPRINTER = 10
+    PRINTERPAUSED = 11
 
 
 class FilamentSwitcherPlugin(
@@ -57,6 +76,9 @@ class FilamentSwitcherPlugin(
         self._logger.info(f"{bcolors.BOLD}**** FilamentSwitcher initialize() called{bcolors.ENDC}")
         self.printerstatus = PrinterStatus.IDLING
         self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
+        self.eAxisStatus = EAxisStatus.UNKNOWN
+        self.xyzAxisStatus = XYZAxisStatus.UNKNOWN
+        self.fsState = FilSwitcherStatus.MONITOR
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
@@ -127,44 +149,169 @@ class FilamentSwitcherPlugin(
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         if not hasattr(self, 'gcodeCounter'):
             self.gcodeCounter = 0
-        self.gcodeCounter += 1
+        if not hasattr(self, 'savedGCode'):
+            self.savedGCode = []
+        if not hasattr(self, 'fsState'):
+            self.fsState = FilSwitcherStatus.MONITOR
+        if self.fsState == FilSwitcherStatus.MONITOR:
+            if gcode:
+                self.gcodeCounter += 1
+                if self.gcodeCounter == 4000:                                # *** Test test
+                    self.sendUSBmessage("FSEcho FS: FRO   **|**|**|**|**|**") # *** Test test
+                #if 100 == self.gcodeCounter % 497:                           # *** Test test
+                #    x = comm_instance.pause_position.x
+                #    y = comm_instance.pause_position.y
+                #    z = comm_instance.pause_position.z
+                #    t = comm_instance.pause_position.t
+                #    #t = comm_instance.pause_temperature
+                #    self.sendUSBmessage(f"FSPStat gcode:{gcode} X{x} Y{y} Z{z} T{t}")
+                if gcode == "M82": # Absolute positioning
+                    self.eAxisStatus = EAxisStatus.ABSOLUTE
+                    self.sendUSBmessage(cmd)
+                elif gcode == "M83": # Relative positioning
+                    self.eAxisStatus = EAxisStatus.RELATIVE
+                    self.sendUSBmessage(cmd)
+                elif gcode == "G90": # Absolute positioning
+                    self.eAxisStatus = EAxisStatus.ABSOLUTE
+                    self.xyzAxisStatus = XYZAxisStatus.ABSOLUTE
+                    self.sendUSBmessage(cmd)
+                elif gcode == "G91": # Relative positioning
+                    self.eAxisStatus = EAxisStatus.RELATIVE
+                    self.xyzAxisStatus = XYZAxisStatus.RELATIVE
+                    self.sendUSBmessage(cmd)
+                elif gcode == "M104": # Set hotend temp (no wait)
+                    self.sendUSBmessage(cmd)
+                    # TODO: Capture hotend temperature settings
+                    self.gcodeCounter = 0
+                elif gcode == "M109": # Set hotend temp (wait)
+                    self.sendUSBmessage(cmd)
+                    # TODO: Capture hotend temperature settings
+                    self.gcodeCounter = 0
+                    # TODO: Capture bed temperature settings (M140, M190)
+                elif gcode == "M117": # Send message to LCD
+                    self.sendUSBmessage(cmd)
+                    # TODO: Capture layer info
+                    #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
+                    #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
+                elif gcode != "G0" and gcode != "G1":
+                    self.sendUSBmessage(cmd)
+                elif self.gcodeCounter < 200:
+                    self.sendUSBmessage(cmd)
+                if gcode "G0" or gcode == "G1":
+                    #self.process_inbound_commands(comm_instance, cmd, gcode)
+                    msg = self.readUSBmessage()
+                    if msg != "":
+                        self._logger.info(f"Inbound: {msg}")
+                        fsCmdLine = msg.split()
+                        if len(fsCmdLine) > 1:
+                            if fsCmdLine[0] == "FS:":
+                                if fsCmdLine[1] == "FRO":
+                                    self.gcodeCounter = 0
+                                    self.sendUSBmessage(f"FSPStat (FRO Event) Detected By Plugin - DING DING DING***********")
+                                    # TODO: Save location of XYZ,E coordinates
+                                    # TODO: Raise hotend ~10mm, retract past extruder gear (different action per relative/absolute)
+                                    self.sendUSBmessage("FSReload")
+                                    self.fsState = FilSwitcherStatus.PHASE1
+        elif self.fsState == FilSwitcherStatus.PHASE1:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # TODO: If absolute positioning, move hotend to purge position, wait for message from FS that filament reloaded
+            # TODO: If relative positioning, no action
+            # TODO: If timeout occurs, next step should be PAUSEPRINTER, wait for operator action
+            self.fsState = FilSwitcherStatus.PHASE2
+        elif self.fsState == FilSwitcherStatus.PHASE2:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # TODO: purge hotend with new filament
+            # TODO: If absolute positioning, move back to original print position
+            self.fsState = FilSwitcherStatus.PHASE3
+        elif self.fsState == FilSwitcherStatus.PHASE3:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # TODO: empty savedGCode list into cmd, carry on. (set fsState to MONITOR?)
+            self.fsState = FilSwitcherStatus.PHASE4
+        elif self.fsState == FilSwitcherStatus.PHASE4:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # work work work...
+            self.fsState = FilSwitcherStatus.PHASE5
+        elif self.fsState == FilSwitcherStatus.PHASE5:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # work work work...
+            self.fsState = FilSwitcherStatus.PHASE6
+        elif self.fsState == FilSwitcherStatus.PHASE6:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # work work work...
+            self.fsState = FilSwitcherStatus.PHASE7
+        elif self.fsState == FilSwitcherStatus.PHASE7:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            # work work work...
+            self.fsState = FilSwitcherStatus.PAUSEPRINTER
+        elif self.fsState == FilSwitcherStatus.PAUSEPRINTER:
+            self.savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self.fsState}")
+            cmd = ["M104 S0", "M140 S0", ("M117 Shutting off hotend, bed heaters")]
+            self.fsState = FilSwitcherStatus.PRINTERPAUSED
+        elif self.fsState == FilSwitcherStatus.PRINTERPAUSED:
+            self._logger.info("Pausing printer")
+            self._logger.info(f"Phase: {self.fsState}")
+            comm_instance.setPause(True)
+        elif self.fsState == FilSwitcherStatus.PRINTERRESUME:
+            self._logger.info("Resume operations")
+            self._logger.info(f"Phase: {self.fsState}")
+            # TODO: Turn on bed heater, hotend heater to saved values
+            #comm_instance.setPause(False)  (?)
+            # TODO: Change state to MONITOR(?)
+        return cmd
+
+
+    # Process requests coming from the FS device
+    def process_inbound_commands(self, comm_instance, cmd, gcode):
         msg = self.readUSBmessage()
-        if self.gcodeCounter == 10000:            # *** Test test
-            self.sendUSBmessage("FSEcho FS: FRO") # *** Test test
-        if self.gcodeCounter % 697:               # *** Test test
-            self.sendUSBmessage(f"FSPStat ?banana?")  # TODO: Fix this
         if msg != "":
             self._logger.info(f"Inbound: {msg}")
             fsCmdLine = msg.split()
             if len(fsCmdLine) > 1:
                 if fsCmdLine[0] == "FS:":
-                    self._logger.info(f"FS command is {fsCmdLine[1:]}")
-            if msg == "FS: FRO" or msg == "FRO":
-                self._logger.warn(f"FS FRO Event - DING DING DING")
-                #comm_instance.setPause(True)  # Some day but not yet...
-                self.gcodeCounter = 0
-                # TODO:
-                # set FS status
-                # set printer to 'pause'
-                # etc. per info below
-        if gcode:
-            if self.gcodeCounter < 200:
-                self.sendUSBmessage(cmd)
-            elif gcode == "M104": # Set hotend temp (no wait)
-                self.sendUSBmessage(cmd)
-                self.gcodeCounter = 0
-            elif gcode == "M109": # Set hotend temp (wait)
-                self.sendUSBmessage(cmd)
-                self.gcodeCounter = 0
-            elif gcode == "M117": # Send message to LCD
-                # TODO: Capture layer info
-                #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
-                #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
-                self.sendUSBmessage(cmd)
-            #elif gcode.startswith("M"):
-            #    self.sendUSBmessage(cmd)
-            elif gcode != "G0" and gcode != "G1":
-                self.sendUSBmessage(cmd)
+                    #self._logger.info(f"FS command is {fsCmdLine[1:]}")
+                    if fsCmdLine[1] == "FRO":
+                        self.gcodeCounter = 0
+                        self.sendUSBmessage(f"FSPStat (FRO Event) Detected By Plugin - DING DING DING***********")
+                        self.savedGCode.append(cmd)
+                        #comm_instance.setPause(True)
+                        #e = comm_instance.pause_position.e
+                        #t = comm_instance.pause_position.t
+                        #x = comm_instance.pause_position.x
+                        #y = comm_instance.pause_position.y
+                        #z = comm_instance.pause_position.z
+                        #self.sendUSBmessage(f"FSPStat (FRO Event) gcode:{gcode} X{x} Y{y} Z{z} T{t} E{e}")
+                        #newcmd = [("M117 Filament Change",),"G91","M83", "G1 Z+80 E-0.8 F4500", "M82", "G90", "G1 X0 Y0"]
+                        #newcmd.extend(cmd)
+                        #cmd = newcmd
+                        #comm_instance.setPause(False)
+                        # TODO:
+                        # set FS status
+                        # set printer to 'pause'
+                        # etc. per info below
+            if cmd and cmd == "resume":
+                if(comm_instance.pause_position.x):
+                    oldcmd = cmd
+                    e = comm_instance.pause_position.e
+                    #f = comm_instance.pause_position.f
+                    x = comm_instance.pause_position.x
+                    y = comm_instance.pause_position.y
+                    z = comm_instance.pause_position.z
+                    newcmd =["M83","G1 E-0.8 F4500", "G1 E0.8 F4500", "G1 E0.8 F4500", "M82", "G90", "G92 E"+str(e), "M83", "G1 X"+str(x)+" Y"+str(y)+" Z"+str(z)+" F4500"]
+                    if(comm_instance.pause_position.f):
+                        newcmd.append("G1 F" + str(comm_instance.pause_position.f))
+                    newcmd.extend(cmd)
+                    cmd = newcmd
+                    comm_instance.commands(cmd)
+                comm_instance.setPause(False)
+
         # TODO:
         # Need to check if FS has notified EndOfFilament event
         # Need to capture:
@@ -191,6 +338,13 @@ class FilamentSwitcherPlugin(
         # change machine state, send to FS
         # Resume printing
         # change machine state, send to FS (?)
+
+    def monitor_atcommand_queue(self, comm_instance, phase, cmd, parameters, tags=None, *args, **kwargs):
+        if not hasattr(self, 'cmdCounter'):
+            self.cmdCounter = 0
+        self.cmdCounter += 1
+        if self.cmdCounter < 200:
+            self.sendUSBmessage(f"atcmd: {cmd}")
 
 
     ## Starting code came from "Rewrite M600 plugin"
@@ -330,6 +484,7 @@ def __plugin_load__():
         # Described at https://docs.octoprint.org/en/master/plugins/hooks.html#octoprint-comm-protocol-gcode-phase
         "octoprint.comm.protocol.gcode.queuing":        __plugin_implementation__.monitor_gcode_queue,
         #"octoprint.comm.protocol.atcommand.queuing":    __plugin_implementation__.after_resume,
+        "octoprint.comm.protocol.atcommand.queuing":    __plugin_implementation__.monitor_atcommand_queue,
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }
 
