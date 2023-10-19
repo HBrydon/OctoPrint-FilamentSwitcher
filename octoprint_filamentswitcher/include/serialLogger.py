@@ -45,6 +45,18 @@ class serialLogger:
     def log_message(self, message):
         self.logger.info("\033[1m%s\033[0m", message)
 
+    def logDebug(self, message):
+        self.logger.debug("\033[1m%s\033[0m", message)
+
+    def logInfo(self, message):
+        self.logger.info("\033[1m%s\033[0m", message)
+
+    def logWarning(self, message):
+        self.logger.warning(message)
+
+    def logCritical(self, message):
+        self.logger.critical(message)
+
     # Log a message at the specified logging level (logging.DEBUG, logging.INFO, etc.).
     def log(self, level, message):
         if level == logging.DEBUG:
@@ -75,7 +87,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
 
