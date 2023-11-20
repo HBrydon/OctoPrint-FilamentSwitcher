@@ -10,6 +10,36 @@ from enum import Enum
 from octoprint_filamentswitcher.include import pluginversion
 from octoprint_filamentswitcher.include.serialUSBio import serStatus, SerialUSBio
 
+
+# A short collection of regexes for communication parsing...
+# (based on info in util/comm.py)
+
+regex_float_pattern = r"[-+]?[0-9]*\.?[0-9]+"
+regex_positive_float_pattern = r"[+]?[0-9]*\.?[0-9]+"
+regex_int_pattern = r"\d+"
+
+#regex_command = re.compile(   # Regex for a GCODE command.
+#    r"^\s*((?P<codeGM>[GM]\d+)(\.(?P<subcode>\d+))?|(?P<codeT>T)\d+|(?P<codeF>F)\d+)"
+#)
+
+
+#regex_float = re.compile(regex_float_pattern)  # Regex for a float value.
+
+regexes_parameters = {  # Regexes for parsing various GCode command parameters...
+    "floatE": re.compile(r"(^|[^A-Za-z])[Ee](?P<value>%s)" % regex_float_pattern),
+    "floatF": re.compile(r"(^|[^A-Za-z])[Ff](?P<value>%s)" % regex_float_pattern),
+    "floatP": re.compile(r"(^|[^A-Za-z])[Pp](?P<value>%s)" % regex_float_pattern),
+    "floatR": re.compile(r"(^|[^A-Za-z])[Rr](?P<value>%s)" % regex_float_pattern),
+    "floatS": re.compile(r"(^|[^A-Za-z])[Ss](?P<value>%s)" % regex_float_pattern),
+    "floatX": re.compile(r"(^|[^A-Za-z])[Xx](?P<value>%s)" % regex_float_pattern),
+    "floatY": re.compile(r"(^|[^A-Za-z])[Yy](?P<value>%s)" % regex_float_pattern),
+    "floatZ": re.compile(r"(^|[^A-Za-z])[Zz](?P<value>%s)" % regex_float_pattern),
+    "intN": re.compile(r"(^|[^A-Za-z])[Nn](?P<value>%s)" % regex_int_pattern),
+    "intS": re.compile(r"(^|[^A-Za-z])[Ss](?P<value>%s)" % regex_int_pattern),
+    "intT": re.compile(r"(^|[^A-Za-z])[Tt](?P<value>%s)" % regex_int_pattern),
+}
+
+
 # Some info available at:
 #  https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 class bcolors:
@@ -22,9 +52,6 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-
-#gcodeCounter = 0
 
 
 class PrinterStatus(Enum):
@@ -42,19 +69,19 @@ class EAxisStatus(Enum):
     RELATIVE = 1
     ABSOLUTE = 2
 
-class FilSwitcherStatus(Enum):
-    MONITOR = 0
-    LOOKFORG0G1 = 1
+class RunStatus(Enum):
+    MONITOR_G0G1 = 0
+    #LOOKFORG0G1 = 1
     WAITFORRETRACT = 2
-    PHASE1 = 3
-    PHASE2 = 4
-    PHASE3 = 5
-    PHASE4 = 6
-    PHASE5 = 7
-    PHASE6 = 8
-    PHASE7 = 9
-    PAUSEPRINTER = 10
-    PRINTERPAUSED = 11
+    RELOAD_PARKX0Y0 = 3
+    RELOAD_PURGE_RETURN = 4
+    #RESUME = 5
+    #PHASE4 = 6
+    #PHASE5 = 7
+    #PHASE6 = 8
+    #PHASE7 = 9
+    #PAUSEPRINTER = 10
+    #PRINTERPAUSED = 11
 
 
 class FilamentSwitcherPlugin(
@@ -65,8 +92,8 @@ class FilamentSwitcherPlugin(
 ):
     def __init__(self):
         #self._logger.info("**** FilamentSwitcher __init__() called")
-        self.printerstatus = PrinterStatus.UNKNOWN
-        self.gcodeCounter = 0
+        self._printerstatus = PrinterStatus.UNKNOWN
+        self._gcodeCounter = 0
 
     def __del__(self):
         #self._logger.info("**** FilamentSwitcher __del__() called")
@@ -74,11 +101,11 @@ class FilamentSwitcherPlugin(
 
     def initialize(self):
         self._logger.info(f"{bcolors.BOLD}**** FilamentSwitcher initialize() called{bcolors.ENDC}")
-        self.printerstatus = PrinterStatus.IDLING
+        self._printerstatus = PrinterStatus.IDLING
         self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
-        self.eAxisStatus = EAxisStatus.UNKNOWN
-        self.xyzAxisStatus = XYZAxisStatus.UNKNOWN
-        self.fsState = FilSwitcherStatus.MONITOR
+        self._eAxisStatus = EAxisStatus.UNKNOWN
+        self._xyzAxisStatus = XYZAxisStatus.UNKNOWN
+        self._fsState = RunStatus.MONITOR_G0G1
 
     ##~~ StartupPlugin mixin
     def on_after_startup(self):
@@ -147,55 +174,72 @@ class FilamentSwitcherPlugin(
         )
 
     def monitor_gcode_queue(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        if not hasattr(self, 'gcodeCounter'):
-            self.gcodeCounter = 0
-        if not hasattr(self, 'savedGCode'):
-            self.savedGCode = []
-        if not hasattr(self, 'fsState'):
-            self.fsState = FilSwitcherStatus.MONITOR
-        if self.fsState == FilSwitcherStatus.MONITOR:
+        if not hasattr(self, '_gcodeCounter'):
+            self._gcodeCounter = 0
+        if not hasattr(self, '_savedGCode'):
+            self._savedGCode = []
+        if not hasattr(self, '_fsState'):
+            self._fsState = RunStatus.MONITOR_G0G1
+        if self._fsState == RunStatus.MONITOR_G0G1:
             if gcode:
-                self.gcodeCounter += 1
-                if self.gcodeCounter == 4000:                                # *** Test test
+                self._gcodeCounter += 1
+                if self._gcodeCounter == 500:                                 # *** Test test
                     self.sendUSBmessage("FSEcho FS: FRO   **|**|**|**|**|**") # *** Test test
-                #if 100 == self.gcodeCounter % 497:                           # *** Test test
+                    self._gcodeCounter = 0                                    # *** Test test
+                #if 100 == self._gcodeCounter % 497:                           # *** Test test
                 #    x = comm_instance.pause_position.x
                 #    y = comm_instance.pause_position.y
                 #    z = comm_instance.pause_position.z
                 #    t = comm_instance.pause_position.t
                 #    #t = comm_instance.pause_temperature
                 #    self.sendUSBmessage(f"FSPStat gcode:{gcode} X{x} Y{y} Z{z} T{t}")
-                if gcode == "M82": # Absolute positioning
-                    self.eAxisStatus = EAxisStatus.ABSOLUTE
+                if gcode == "M82": # Absolute E positioning
+                    self._eAxisStatus = EAxisStatus.ABSOLUTE
                     self.sendUSBmessage(cmd)
-                elif gcode == "M83": # Relative positioning
-                    self.eAxisStatus = EAxisStatus.RELATIVE
+                elif gcode == "M83": # Relative E positioning
+                    self._eAxisStatus = EAxisStatus.RELATIVE
                     self.sendUSBmessage(cmd)
-                elif gcode == "G90": # Absolute positioning
-                    self.eAxisStatus = EAxisStatus.ABSOLUTE
-                    self.xyzAxisStatus = XYZAxisStatus.ABSOLUTE
+                elif gcode == "G90": # Absolute XYZE positioning
+                    self._eAxisStatus = EAxisStatus.ABSOLUTE
+                    self._xyzAxisStatus = XYZAxisStatus.ABSOLUTE
                     self.sendUSBmessage(cmd)
-                elif gcode == "G91": # Relative positioning
-                    self.eAxisStatus = EAxisStatus.RELATIVE
-                    self.xyzAxisStatus = XYZAxisStatus.RELATIVE
+                elif gcode == "G91": # Relative XYZE positioning
+                    self._eAxisStatus = EAxisStatus.RELATIVE
+                    self._xyzAxisStatus = XYZAxisStatus.RELATIVE
                     self.sendUSBmessage(cmd)
                 elif gcode == "M104": # Set hotend temp (no wait)
                     self.sendUSBmessage(cmd)
-                    # TODO: Capture hotend temperature settings
-                    self.gcodeCounter = 0
+                    match = regexes_parameters["floatS"].search(cmd)
+                    if match:
+                        try:
+                            self._currentHotendTemp = float(match.group("value"))
+                            self._logger.info(f"HotendTemp: {self._currentHotendTemp}")
+                        except ValueError:
+                            self._logger.info("HotendTemp M104 exception")
+                            pass
+                    self._gcodeCounter = 0
                 elif gcode == "M109": # Set hotend temp (wait)
                     self.sendUSBmessage(cmd)
-                    # TODO: Capture hotend temperature settings
-                    self.gcodeCounter = 0
-                    # TODO: Capture bed temperature settings (M140, M190)
+                    match = regexes_parameters["floatS"].search(cmd)
+                    if match:
+                        try:
+                            self._currentHotendTemp = float(match.group("value"))
+                            self._logger.info(f"HotendTemp: {self._currentHotendTemp}")
+                        except ValueError:
+                            self._logger.info("HotendTemp M109 exception")
+                            pass
+                    self._gcodeCounter = 0
+                # TODO (?): Capture bed temperature settings (M140, M190)
+                elif gcode == "M114": # Request position info
+                    self.sendUSBmessage(cmd)
                 elif gcode == "M117": # Send message to LCD
                     self.sendUSBmessage(cmd)
-                    # TODO: Capture layer info
+                    # TODO (?): Capture layer info
                     #2023-10-13 13:37:21,100 - serialUSBlogger - INFO - Send: M117 DASHBOARD_LAYER_INDICATOR 1
                     #2023-10-13 13:37:21,108 - serialUSBlogger - INFO - Send: M117 0% L=0/166
                 elif gcode != "G0" and gcode != "G1":
                     self.sendUSBmessage(cmd)
-                elif self.gcodeCounter < 200:
+                elif self._gcodeCounter < 200:
                     self.sendUSBmessage(cmd)
                 if gcode == "G0" or gcode == "G1":
                     #self.process_inbound_commands(comm_instance, cmd, gcode)
@@ -204,69 +248,168 @@ class FilamentSwitcherPlugin(
                         self._logger.info(f"Inbound: {msg}")
                         fsCmdLine = msg.split()
                         if len(fsCmdLine) > 1:
-                            if fsCmdLine[0] == "FS:":
-                                if fsCmdLine[1] == "FRO":
-                                    self.gcodeCounter = 0
-                                    self.sendUSBmessage(f"FSPStat (FRO Event) Detected By Plugin - DING DING DING***********")
-                                    # TODO: Save location of XYZ,E coordinates
-                                    # TODO: Raise hotend ~10mm, retract past extruder gear (different action per relative/absolute)
-                                    self.sendUSBmessage("FSReload")
-                                    self.fsState = FilSwitcherStatus.PHASE1
-        elif self.fsState == FilSwitcherStatus.PHASE1:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # TODO: If absolute positioning, move hotend to purge position, wait for message from FS that filament reloaded
-            # TODO: If relative positioning, no action
-            # TODO: If timeout occurs, next step should be PAUSEPRINTER, wait for operator action
-            self.fsState = FilSwitcherStatus.PHASE2
-        elif self.fsState == FilSwitcherStatus.PHASE2:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # TODO: purge hotend with new filament
-            # TODO: If absolute positioning, move back to original print position
-            self.fsState = FilSwitcherStatus.PHASE3
-        elif self.fsState == FilSwitcherStatus.PHASE3:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # TODO: empty savedGCode list into cmd, carry on. (set fsState to MONITOR?)
-            self.fsState = FilSwitcherStatus.PHASE4
-        elif self.fsState == FilSwitcherStatus.PHASE4:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # work work work...
-            self.fsState = FilSwitcherStatus.PHASE5
-        elif self.fsState == FilSwitcherStatus.PHASE5:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # work work work...
-            self.fsState = FilSwitcherStatus.PHASE6
-        elif self.fsState == FilSwitcherStatus.PHASE6:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # work work work...
-            self.fsState = FilSwitcherStatus.PHASE7
-        elif self.fsState == FilSwitcherStatus.PHASE7:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            # work work work...
-            self.fsState = FilSwitcherStatus.PAUSEPRINTER
-        elif self.fsState == FilSwitcherStatus.PAUSEPRINTER:
-            self.savedGCode.append(cmd)
-            self._logger.info(f"Phase: {self.fsState}")
-            cmd = ["M104 S0", "M140 S0", ("M117 Shutting off hotend, bed heaters")]
-            self.fsState = FilSwitcherStatus.PRINTERPAUSED
-        elif self.fsState == FilSwitcherStatus.PRINTERPAUSED:
-            self._logger.info("Pausing printer")
-            self._logger.info(f"Phase: {self.fsState}")
-            comm_instance.setPause(True)
-        elif self.fsState == FilSwitcherStatus.PRINTERRESUME:
-            self._logger.info("Resume operations")
-            self._logger.info(f"Phase: {self.fsState}")
-            # TODO: Turn on bed heater, hotend heater to saved values
-            #comm_instance.setPause(False)  (?)
-            # TODO: Change state to MONITOR(?)
-        return cmd
+                            if fsCmdLine[0] == "FS:" and fsCmdLine[1] == "FRO":  # Filament runout event detected by FS
+                                self._gcodeCounter = 0
+                                self._savedGCode.append(cmd)
+                                self._gobackX = self._currentX
+                                self._gobackY = self._currentY
+                                self._gobackZ = self._currentZ
+                                self._gobackE = self._currentE
+                                self._gobackF = self._currentF
+                                self.sendUSBmessage(f"FSPStat (FRO Event) Detected By Plugin - DING DING DING***********")  # *** Debug - acknowledge FRO event
+                                self.sendUSBmessage(f"FSPStat Position {self._xyzAxisStatus}: X{self._gobackX} Y{self._gobackY} Z{self._gobackZ} E{self._gobackE} {self._eAxisStatus} F{self._gobackF}")
+                                # TODO: Add MQTT event
+                                newcmd = []
+                                newcmd.append("M117 Filament Change",)  # TODO: Can we add layer info here?
+                                #if self._xyzAxisStatus == XYZAxisStatus.ABSOLUTE:
+                                #    newZ = self._gobackZ + self._settings.get(["zDistance"])
+                                #else
+                                #    newZ = self._settings.get(["zDistance"])
+                                newZ = self._gobackZ + self._settings.get(["zDistance"])
+                                newcmd.append("G90")    # Absolute XYZE
+                                newcmd.append("M83")    # Relative E
+                                newcmd.append("M92 E0") # Set E position to 0
+                                newcmd.append("G1 Z+" + str(newZ) + " E-0.8 F4500")  # Raise hotend above work piece, pull back filament a bit
+                                #if self._eAxisStatus == EAxisStatus.ABSOLUTE:
+                                #    newE = self._gobackE + self._settings.get(["unload_length"])
+                                #else
+                                #    newE = self._settings.get(["unload_length"])
+                                newE = self._settings.get(["unload_length"]) # TODO: If length > 100 then break it up
+                                newcmd.append("G1 E-" + str(newE) + " F4500") # Retract past extruder drive
+                                newcmd.append("G4")  # Dwell
+                                cmd = newcmd
+                                self._fsState = RunStatus.RELOAD_PARKX0Y0
+                    elif "X" in cmd or "Y" in cmd or "Z" in cmd or "E" in cmd or "F" in cmd:
+                        # track X
+                        match = regexes_parameters["floatX"].search(cmd)
+                        if match:
+                            try:
+                                self._currentX = float(match.group("value"))
+                                self._logger.info(f"X: {self._currentX}")
+                            except ValueError:
+                                self._logger.info("X exception (ValueError)")
+                                pass
+                        # track Y
+                        match = regexes_parameters["floatY"].search(cmd)
+                        if match:
+                            try:
+                                self._currentY = float(match.group("value"))
+                                self._logger.info(f"Y: {self._currentY}")
+                            except ValueError:
+                                self._logger.info("Y exception (ValueError)")
+                                pass
+                        # track Z
+                        match = regexes_parameters["floatZ"].search(cmd)
+                        if match:
+                            try:
+                                self._currentZ = float(match.group("value"))
+                                self._logger.info(f"Z: {self._currentZ}")
+                            except ValueError:
+                                self._logger.info("Z exception (ValueError)")
+                                pass
+                        # track E
+                        match = regexes_parameters["floatE"].search(cmd)
+                        if match:
+                            try:
+                                self._currentE = float(match.group("value"))
+                                self._logger.info(f"E: {self._currentE}")
+                            except ValueError:
+                                self._logger.info("E exception (ValueError)")
+                                pass
+                        # track F
+                        match = regexes_parameters["floatF"].search(cmd)
+                        if match:
+                            try:
+                                self._currentF = float(match.group("value"))
+                                self._logger.info(f"F: {self._currentF}")
+                            except ValueError:
+                                self._logger.info("F exception (ValueError)")
+                                pass
+        elif self._fsState == RunStatus.RELOAD_PARKX0Y0: # Send reload request, go to X0 Y0 while it is in progress
+            self._savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self._fsState}")
+            self.sendUSBmessage("FSReload")
+            newcmd = []
+            newcmd.append("G90")  # Absolute XYZE
+            newcmd.append("G1 X0 Y0")
+            newcmd.append("G4")   # Dwell: Flush queue
+            cmd = newcmd
+            self._fsState = RunStatus.RELOAD_PURGE_RETURN
+        elif self._fsState == RunStatus.RELOAD_PURGE_RETURN: # Sit at X0 Y0, wait for FS to reload, purge, return to work
+            self._savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self._fsState}")
+            while True:  # TODO: Add timeout, ask operator for help
+                msg = self.readUSBmessage()
+                if msg != "":
+                    self._logger.info(f"Inbound: {msg}")
+                    fsCmdLine = msg.split()
+                    if len(fsCmdLine) > 1:
+                        if fsCmdLine[0] == "FS:" and fsCmdLine[1] == "RESPOOLED":  # The moment we've been waiting for...
+                            break
+            newcmd = []
+            newE = self._settings.get(["unload_length"]) # TODO: If length > 100 then break it up
+            newcmd.append("G1 E+0.8 F4500") # Start feed into extruder
+            newcmd.append("G4 S1") # Wait a second - orient filament into bowden/hot end # *** Debug
+            newcmd.append("G1 E+" + str(newE) + " F4500") # Refeed through Bowden tube etc. from extruder to hot end
+            newcmd.append("G4 S1") # Wait a second - heat filament before purge(?) # *** Debug
+            newcmd.append("G1 E5 F4500") # Purge
+            newcmd.append("G4 S5") # Wait a second - let purged junk roll out
+            # TODO: Implement nozzle wipe feature
+            newcmd.append("G1 X" + str(self._gobackX) + " Y" + str(self._gobackY))  # Return to work piece XY location (at elevated Z)
+            newcmd.append("G1 Z" + str(self._gobackZ))  # Drop down to work piece Z location
+            if self._eAxisStatus == EAxisStatus.ABSOLUTE:
+                newcmd.append("M82")  # E Absolute
+            else
+                newcmd.append("M83")  # E Relative
+            newcmd.append("G92 E" + str(self._gobackE))  # Set original E value
+            if self._gobackF:
+                newcmd.append("G1 F" + str(self._gobackF)) # Set original F value
+            newcmd.append("G92 E" + str(self._gobackE) + " F" + str(self._gobackF))  # Set original E+F values
+            #newcmd.append("G4")  # (not needed?)
+            cmd = newcmd
+            self._fsState = RunStatus.RESUME
+        elif self._fsState == RunStatus.RESUME:
+            self._savedGCode.append(cmd)
+            self._logger.info(f"Phase: {self._fsState}")
+            cmd = self._savedGCode
+            self._savedGCode = []  # (Redundant)
+            self._fsState = RunStatus.MONITOR_G0G1
 
+        #elif self._fsState == RunStatus.PHASE4:
+        #    self._savedGCode.append(cmd)
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    self._fsState = RunStatus.PHASE5
+        #elif self._fsState == RunStatus.PHASE5:
+        #    self._savedGCode.append(cmd)
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    # work work work...
+        #    self._fsState = RunStatus.PHASE6
+        #elif self._fsState == RunStatus.PHASE6:
+        #    self._savedGCode.append(cmd)
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    # work work work...
+        #    self._fsState = RunStatus.PHASE7
+        #elif self._fsState == RunStatus.PHASE7:
+        #    self._savedGCode.append(cmd)
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    # work work work...
+        #    self._fsState = RunStatus.PAUSEPRINTER
+        #elif self._fsState == RunStatus.PAUSEPRINTER:
+        #    self._savedGCode.append(cmd)
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    cmd = ["M104 S0", "M140 S0", ("M117 Shutting off hotend, bed heaters")]
+        #    self._fsState = RunStatus.PRINTERPAUSED
+        #elif self._fsState == RunStatus.PRINTERPAUSED:
+        #    self._logger.info("Pausing printer")
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    comm_instance.setPause(True)
+        #elif self._fsState == RunStatus.PRINTERRESUME:
+        #    self._logger.info("Resume operations")
+        #    self._logger.info(f"Phase: {self._fsState}")
+        #    # TODO: (?) Turn on bed heater, hotend heater to saved values
+        #    #comm_instance.setPause(False)  (?)
+        #    # TODO: Change state to MONITOR_G0G1(?)
+        return cmd
 
     # Process requests coming from the FS device
     def process_inbound_commands(self, comm_instance, cmd, gcode):
@@ -278,9 +421,9 @@ class FilamentSwitcherPlugin(
                 if fsCmdLine[0] == "FS:":
                     #self._logger.info(f"FS command is {fsCmdLine[1:]}")
                     if fsCmdLine[1] == "FRO":
-                        self.gcodeCounter = 0
+                        self._gcodeCounter = 0
                         self.sendUSBmessage(f"FSPStat (FRO Event) Detected By Plugin - DING DING DING***********")
-                        self.savedGCode.append(cmd)
+                        self._savedGCode.append(cmd)
                         #comm_instance.setPause(True)
                         #e = comm_instance.pause_position.e
                         #t = comm_instance.pause_position.t
@@ -397,7 +540,7 @@ class FilamentSwitcherPlugin(
         return self.fsDev.read_line_from_queue()
 
     def sendCurrentState(self):
-        self.sendUSBmessage(f"FSPStat {self.printerstatus}")
+        self.sendUSBmessage(f"FSPStat {self._printerstatus}")
 
     def closeUSBinterface(self):
         self.fsDev.close()
