@@ -54,11 +54,10 @@ class SerialUSBio:
                 self.ser = None
 
     def closeSerial(self):
-        if self.ser != None:
-            if self.isSerialOpen():
-                self._serialLogger.log_message("Closing IO port")
-                self.ser.close()
-            self.ser = None
+        if self.isSerialOpen():
+            self._serialLogger.log_message("Closing IO port")
+            self.ser.close()
+        self.ser = None
         self.commstate = serStatus.CLOSED
 
     def isSerialOpen(self):
@@ -105,7 +104,7 @@ class SerialUSBio:
                     data = self.ser.readline().decode().strip()
                     self.data_queue.put(data)
                     self._serialLogger.log_recv_message(data)
-                    time.sleep(0.5)
+                time.sleep(0.2)
             except serial.serialutil.SerialException as e:
                 self._serialLogger.log(logging.WARNING, f"IO exception on port {self.port} (unplugged?): {e}")
                 #self.ser = None
