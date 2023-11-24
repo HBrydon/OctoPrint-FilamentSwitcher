@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import octoprint.plugin
+import re
 import time
 
 from enum import Enum
@@ -263,7 +264,7 @@ class FilamentSwitcherPlugin(
                                 newcmd.append("M117 Filament Change",)  # TODO: Can we add layer info here?
                                 #if self._xyzAxisStatus == XYZAxisStatus.ABSOLUTE:
                                 #    newZ = self._gobackZ + self._settings.get(["zDistance"])
-                                #else
+                                #else:
                                 #    newZ = self._settings.get(["zDistance"])
                                 newZ = self._gobackZ + self._settings.get(["zDistance"])
                                 newcmd.append("G90")    # Absolute XYZE
@@ -272,7 +273,7 @@ class FilamentSwitcherPlugin(
                                 newcmd.append("G1 Z+" + str(newZ) + " E-0.8 F4500")  # Raise hotend above work piece, pull back filament a bit
                                 #if self._eAxisStatus == EAxisStatus.ABSOLUTE:
                                 #    newE = self._gobackE + self._settings.get(["unload_length"])
-                                #else
+                                #else:
                                 #    newE = self._settings.get(["unload_length"])
                                 newE = self._settings.get(["unload_length"]) # TODO: If length > 100 then break it up
                                 newcmd.append("G1 E-" + str(newE) + " F4500") # Retract past extruder drive
@@ -359,7 +360,7 @@ class FilamentSwitcherPlugin(
             newcmd.append("G1 Z" + str(self._gobackZ))  # Drop down to work piece Z location
             if self._eAxisStatus == EAxisStatus.ABSOLUTE:
                 newcmd.append("M82")  # E Absolute
-            else
+            else:
                 newcmd.append("M83")  # E Relative
             newcmd.append("G92 E" + str(self._gobackE))  # Set original E value
             if self._gobackF:
