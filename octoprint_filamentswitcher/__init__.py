@@ -76,7 +76,7 @@ class RunStatus(Enum):
     WAITFORRETRACT = 2
     RELOAD_PARKX0Y0 = 3
     RELOAD_PURGE_RETURN = 4
-    #RESUME = 5
+    RESUME_PRINTING = 5
     #PHASE4 = 6
     #PHASE5 = 7
     #PHASE6 = 8
@@ -105,7 +105,7 @@ class FilamentSwitcherPlugin(
         self._printerstatus = PrinterStatus.IDLING
         self.openUSBinterface(self._settings.get(["fsPort"]), self._settings.get(["fsBaudRate"]), self._settings.get(["fsLogfile"]))
         self._eAxisStatus = EAxisStatus.UNKNOWN
-        self._xyzAxisStatus = XYZAxisStatus.UNKNOWN
+        self._xyzAxisStatus = XYZAxisStatus.ABSOLUTE  # default seems to be absolute unless specified otherwise
         self._fsState = RunStatus.MONITOR_G0G1
 
     ##~~ StartupPlugin mixin
@@ -142,7 +142,9 @@ class FilamentSwitcherPlugin(
             #ver_maj=pluginversion.VER_MAJOR,
             #ver_min=pluginversion.VER_MINOR,
             #vers=pluginversion.VERSION,
-            zDistance=80,
+            fsZDistance=10,
+            fsBowdenLength=5,
+            fsPurgeLength=5,
             unload_length=500,
             unload_speed=1600,
             load_length=50,
@@ -184,7 +186,7 @@ class FilamentSwitcherPlugin(
         if self._fsState == RunStatus.MONITOR_G0G1:
             if gcode:
                 self._gcodeCounter += 1
-                if self._gcodeCounter == 500:                                 # *** Test test
+                if self._gcodeCounter == 800:                                 # *** Test test
                     self.sendUSBmessage("FSEcho FS: FRO   **|**|**|**|**|**") # *** Test test
                     self._gcodeCounter = 0                                    # *** Test test
                 #if 100 == self._gcodeCounter % 497:                           # *** Test test
@@ -262,21 +264,23 @@ class FilamentSwitcherPlugin(
                                 # TODO: Add MQTT event
                                 newcmd = []
                                 newcmd.append("M117 Filament Change",)  # TODO: Can we add layer info here?
-                                #if self._xyzAxisStatus == XYZAxisStatus.ABSOLUTE:
-                                #    newZ = self._gobackZ + self._settings.get(["zDistance"])
-                                #else:
-                                #    newZ = self._settings.get(["zDistance"])
-                                newZ = self._gobackZ + self._settings.get(["zDistance"])
-                                newcmd.append("G90")    # Absolute XYZE
-                                newcmd.append("M83")    # Relative E
-                                newcmd.append("M92 E0") # Set E position to 0
-                                newcmd.append("G1 Z+" + str(newZ) + " E-0.8 F4500")  # Raise hotend above work piece, pull back filament a bit
-                                #if self._eAxisStatus == EAxisStatus.ABSOLUTE:
-                                #    newE = self._gobackE + self._settings.get(["unload_length"])
-                                #else:
-                                #    newE = self._settings.get(["unload_length"])
-                                newE = self._settings.get(["unload_length"]) # TODO: If length > 100 then break it up
-                                newcmd.append("G1 E-" + str(newE) + " F4500") # Retract past extruder drive
+                                ##if self._xyzAxisStatus == XYZAxisStatus.ABSOLUTE:
+                                ##    self._newZ = self._gobackZ + float(self._settings.get(["fsZDistance"]))
+                                ##else:
+                                ##    self._newZ = float(self._settings.get(["fsZDistance"]))
+                                # [Assumption: We are always in XYZ absolute, E absolute mode]
+                                self._newZ = self._gobackZ + float(self._settings.get(["fsZDistance"]))
+                                self._newE = self._gobackE -0.8
+                                #newcmd.append("G90")    # Absolute XYZE
+                                #newcmd.append("M83")    # Relative E
+                                #newcmd.append("M92 E0") # Set E position to 0
+                                newcmd.append("G1 Z" + str(self._newZ) + " E" + str(self._newE) + " F4500")  # Raise hotend above work piece, pull back filament a bit
+                                ##if self._eAxisStatus == EAxisStatus.ABSOLUTE:
+                                ##    self._newE = self._gobackE + float(self._settings.get(["fsBowdenLength"]))
+                                ##else:
+                                ##    self._newE = float(self._settings.get(["fsBowdenLength"]))
+                                self._newE = self._newE - float(self._settings.get(["fsBowdenLength"])) # TODO: If length > 100 then break it up
+                                newcmd.append("G1 E" + str(self._newE) + " F4500") # Retract past extruder drive
                                 newcmd.append("G4")  # Dwell
                                 cmd = newcmd
                                 self._fsState = RunStatus.RELOAD_PARKX0Y0
@@ -286,7 +290,7 @@ class FilamentSwitcherPlugin(
                         if match:
                             try:
                                 self._currentX = float(match.group("value"))
-                                self._logger.info(f"X: {self._currentX}")
+                                #self._logger.info(f"X: {self._currentX}")
                             except ValueError:
                                 self._logger.info("X exception (ValueError)")
                                 pass
@@ -295,7 +299,7 @@ class FilamentSwitcherPlugin(
                         if match:
                             try:
                                 self._currentY = float(match.group("value"))
-                                self._logger.info(f"Y: {self._currentY}")
+                                #self._logger.info(f"Y: {self._currentY}")
                             except ValueError:
                                 self._logger.info("Y exception (ValueError)")
                                 pass
@@ -304,7 +308,7 @@ class FilamentSwitcherPlugin(
                         if match:
                             try:
                                 self._currentZ = float(match.group("value"))
-                                self._logger.info(f"Z: {self._currentZ}")
+                                #self._logger.info(f"Z: {self._currentZ}")
                             except ValueError:
                                 self._logger.info("Z exception (ValueError)")
                                 pass
@@ -313,7 +317,7 @@ class FilamentSwitcherPlugin(
                         if match:
                             try:
                                 self._currentE = float(match.group("value"))
-                                self._logger.info(f"E: {self._currentE}")
+                                #self._logger.info(f"E: {self._currentE}")
                             except ValueError:
                                 self._logger.info("E exception (ValueError)")
                                 pass
@@ -322,21 +326,20 @@ class FilamentSwitcherPlugin(
                         if match:
                             try:
                                 self._currentF = float(match.group("value"))
-                                self._logger.info(f"F: {self._currentF}")
+                                #self._logger.info(f"F: {self._currentF}")
                             except ValueError:
                                 self._logger.info("F exception (ValueError)")
                                 pass
-        elif self._fsState == RunStatus.RELOAD_PARKX0Y0: # Send reload request, go to X0 Y0 while it is in progress
+        elif self._fsState == RunStatus.RELOAD_PARKX0Y0: # Send reload request, go to X10 Y20 while it is in progress
             self._savedGCode.append(cmd)
             self._logger.info(f"Phase: {self._fsState}")
             self.sendUSBmessage("FSReload")
             newcmd = []
-            newcmd.append("G90")  # Absolute XYZE
-            newcmd.append("G1 X0 Y0")
+            newcmd.append("G1 X10 Y20") # (Intention is to go wherever the purge line starts)
             newcmd.append("G4")   # Dwell: Flush queue
             cmd = newcmd
             self._fsState = RunStatus.RELOAD_PURGE_RETURN
-        elif self._fsState == RunStatus.RELOAD_PURGE_RETURN: # Sit at X0 Y0, wait for FS to reload, purge, return to work
+        elif self._fsState == RunStatus.RELOAD_PURGE_RETURN: # Sit at X10 Y20, wait for FS to reload, purge, return to work
             self._savedGCode.append(cmd)
             self._logger.info(f"Phase: {self._fsState}")
             while True:  # TODO: Add timeout, ask operator for help
@@ -348,28 +351,30 @@ class FilamentSwitcherPlugin(
                         if fsCmdLine[0] == "FS:" and fsCmdLine[1] == "RESPOOLED":  # The moment we've been waiting for...
                             break
             newcmd = []
-            newE = self._settings.get(["unload_length"]) # TODO: If length > 100 then break it up
-            newcmd.append("G1 E+0.8 F4500") # Start feed into extruder
-            newcmd.append("G4 S1") # Wait a second - orient filament into bowden/hot end # *** Debug
-            newcmd.append("G1 E+" + str(newE) + " F4500") # Refeed through Bowden tube etc. from extruder to hot end
-            newcmd.append("G4 S1") # Wait a second - heat filament before purge(?) # *** Debug
-            newcmd.append("G1 E5 F4500") # Purge
-            newcmd.append("G4 S5") # Wait a second - let purged junk roll out
+            #self._newE = float(self._settings.get(["fsBowdenLength"])) # TODO: If length > 100 then break it up
+            #newcmd.append("G1 E+0.8 F4500") # Start feed into extruder
+            #newcmd.append("G4 S1") # Wait a second - orient filament into bowden/hot end # *** Debug
+            #newcmd.append("G1 E" + str(self._newE) + " F4500") # Refeed through Bowden tube etc. from extruder to hot end
+            #newcmd.append("G4 S1") # Wait a second - heat filament before purge(?) # *** Debug
+            #newcmd.append("G1 E5 F4500") # Purge
+            self._newE += float(self._settings.get(["fsBowdenLength"])) # TODO: If length > 100 then break it up
+            newcmd.append("G1 E" + str(self._newE) + " F4500") # Refeed through Bowden tube etc. from extruder to hot end
+            self._newE += float(self._settings.get(["fsPurgeLength"]))
+            newcmd.append("G1 E" + str(self._newE) + " F1500") # Purge
+            newcmd.append("G4 S2") # Wait a bit - let purged filament squeeze out
             # TODO: Implement nozzle wipe feature
-            newcmd.append("G1 X" + str(self._gobackX) + " Y" + str(self._gobackY))  # Return to work piece XY location (at elevated Z)
-            newcmd.append("G1 Z" + str(self._gobackZ))  # Drop down to work piece Z location
-            if self._eAxisStatus == EAxisStatus.ABSOLUTE:
-                newcmd.append("M82")  # E Absolute
-            else:
-                newcmd.append("M83")  # E Relative
+            newcmd.append("G0 X" + str(self._gobackX) + " Y" + str(self._gobackY) + " F4500")  # Return to work piece XY location (at elevated Z)
+            newcmd.append("G0 Z" + str(self._gobackZ))  # Drop down to work piece Z location
+            #if self._eAxisStatus == EAxisStatus.ABSOLUTE:
+            #    newcmd.append("M82")  # E Absolute
+            #else:
+            #    newcmd.append("M83")  # E Relative
             newcmd.append("G92 E" + str(self._gobackE))  # Set original E value
             if self._gobackF:
-                newcmd.append("G1 F" + str(self._gobackF)) # Set original F value
-            newcmd.append("G92 E" + str(self._gobackE) + " F" + str(self._gobackF))  # Set original E+F values
-            #newcmd.append("G4")  # (not needed?)
+                newcmd.append("G0 F" + str(self._gobackF)) # Set original F value
             cmd = newcmd
-            self._fsState = RunStatus.RESUME
-        elif self._fsState == RunStatus.RESUME:
+            self._fsState = RunStatus.RESUME_PRINTING
+        elif self._fsState == RunStatus.RESUME_PRINTING:
             self._savedGCode.append(cmd)
             self._logger.info(f"Phase: {self._fsState}")
             cmd = self._savedGCode
@@ -432,7 +437,7 @@ class FilamentSwitcherPlugin(
                         #y = comm_instance.pause_position.y
                         #z = comm_instance.pause_position.z
                         #self.sendUSBmessage(f"FSPStat (FRO Event) gcode:{gcode} X{x} Y{y} Z{z} T{t} E{e}")
-                        #newcmd = [("M117 Filament Change",),"G91","M83", "G1 Z+80 E-0.8 F4500", "M82", "G90", "G1 X0 Y0"]
+                        #newcmd = [("M117 Filament Change",),"G91","M83", "G1 Z+80 E-0.8 F4500", "M82", "G90", "G1 X10 Y20"]
                         #newcmd.extend(cmd)
                         #cmd = newcmd
                         #comm_instance.setPause(False)
@@ -496,7 +501,7 @@ class FilamentSwitcherPlugin(
     #    if gcode and gcode == "M600":
     #        self._plugin_manager.send_plugin_message(self._identifier, dict(type="popup", msg="Please change the filament and resume the print"))
     #        comm_instance.setPause(True)
-    #        cmd = [("M117 Filament Change",),"G91","M83", "G1 Z+"+str(self._settings.get(["zDistance"]))+" E-0.8 F4500", "M82", "G90", "G1 X0 Y0"]
+    #        cmd = [("M117 Filament Change",),"G91","M83", "G1 Z+"+str(self._settings.get(["fsZDistance"]))+" E-0.8 F4500", "M82", "G90", "G1 X10 Y20"]
     #    return cmd
 
     ## Starting code came from "Rewrite M600 plugin"
@@ -540,8 +545,8 @@ class FilamentSwitcherPlugin(
     def readUSBmessage(self):
         return self.fsDev.read_line_from_queue()
 
-    def sendCurrentState(self):
-        self.sendUSBmessage(f"FSPStat {self._printerstatus}")
+    #def sendCurrentState(self):
+    #    self.sendUSBmessage(f"FSPStat {self._printerstatus}")
 
     def closeUSBinterface(self):
         self.fsDev.close()
